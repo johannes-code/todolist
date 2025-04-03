@@ -1,4 +1,4 @@
-import { connectToDB } from "@/lib/db";
+import { connectToDB } from "../../../../../lib/db";
 import { Todo } from "@/models/Todo";
 import { NextResponse } from "next/server";
 
@@ -11,9 +11,8 @@ export async function PUT(request, { params }) {
     { completed },
     { new: true }
   );
+  return NextResponse.json(updatedTodo);
 }
-
-return NextResponse.json(updatedTodo);
 
 export async function DELETE(request, { params }) {
   await connectToDB();
