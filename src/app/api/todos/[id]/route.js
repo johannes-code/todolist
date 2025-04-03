@@ -1,4 +1,4 @@
-import { connectToDB } from "../../../../../lib/db";
+import { connectToDB } from "../../../lib/db";
 import { Todo } from "@/models/Todo";
 import { NextResponse } from "next/server";
 
