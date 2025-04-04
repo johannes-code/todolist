@@ -1,4 +1,4 @@
-import { Todo } from "@/models/Todo";
+import Todo from "@/models/Todo";
 import { connectToDB } from "../../lib/db";
 import { NextResponse } from "next/server";
 

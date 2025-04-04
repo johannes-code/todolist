@@ -3,9 +3,7 @@
 import { useState } from "react";
 
 export default function TodoItem({ todo }) {
-  const completedItems = todo.filter((t) => t.completed === "true");
-  console.log(completedItems);
-  const [completed, setCompleted] = useState(completedItems);
+  const [completed, setCompleted] = useState(todo.completed);
 
   const toggleCompleted = async () => {
     try {
@@ -22,7 +20,7 @@ export default function TodoItem({ todo }) {
 
   const deleteTodo = async () => {
     try {
-      await fetch(`/api/todo/${todo._id}`, { method: "DELETE" });
+      await fetch(`/api/todos/${todo._id}`, { method: "DELETE" });
       window.location.reload();
     } catch (err) {
       console.error(err);

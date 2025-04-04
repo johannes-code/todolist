@@ -1,10 +1,10 @@
 import { connectToDB } from "../../../lib/db";
-import { Todo } from "@/models/Todo";
+import Todo from "@/models/Todo";
 import { NextResponse } from "next/server";
 
-export async function PUT(request, { params }) {
+export async function PUT(request, { params: { id } }) {
   await connectToDB();
-  const { id } = params;
+
   const { completed } = await request.json();
 
   const updatedTodo = await Todo.findByIdAndUpdate(
@@ -16,9 +16,9 @@ export async function PUT(request, { params }) {
   return NextResponse.json(updatedTodo);
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, { params: { id } }) {
   await connectToDB();
-  const deletedTodo = await Todo.findByIdAndDelete(params.id);
+  const deletedTodo = await Todo.findByIdAndDelete(id);
 
   if (!deletedTodo) {
     return NextResponse.json({ error: "Todo not found" }, { status: 404 });
