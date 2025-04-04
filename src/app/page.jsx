@@ -17,6 +17,7 @@ export default async function Home() {
         {todos?.map((todo, index) => (
           <TodoItem key={index} todo={{ ...todo, _id: todo._id.toString() }} />
         ))}
+        {""}
       </div>
     </div>
   );
