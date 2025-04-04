@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 
 export async function PUT(request, { params: { id } }) {
   await connectToDB();
-
   const { completed } = await request.json();
 
   const updatedTodo = await Todo.findByIdAndUpdate(
