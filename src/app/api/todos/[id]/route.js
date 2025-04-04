@@ -2,7 +2,8 @@ import { connectToDB } from "../../../lib/db";
 import Todo from "@/models/Todo";
 import { NextResponse } from "next/server";
 
-export async function PUT(request, { params: { id } }) {
+export async function PUT(request, { params }) {
+  const { id } = await params;
   await connectToDB();
   const { completed } = await request.json();
 
@@ -15,7 +16,8 @@ export async function PUT(request, { params: { id } }) {
   return NextResponse.json(updatedTodo);
 }
 
-export async function DELETE(request, { params: { id } }) {
+export async function DELETE(request, { params }) {
+  const { id } = await params;
   await connectToDB();
   const deletedTodo = await Todo.findByIdAndDelete(id);
 
