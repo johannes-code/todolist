@@ -1,7 +1,7 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 
 export default clerkMiddleware(async ( auth, req) => {
-  const publicRoutes = ['/sign-in', '/sign-up'];
+  const publicRoutes = ['/sign-in/(.*)', '/sign-up/(.*)'];
   if (!publicRoutes.includes(req.nextUrl.pathname)) {
     await auth.protect();
   }
