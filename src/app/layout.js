@@ -30,7 +30,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html>
-    <ClerkProvider frontendApi="your-clerk-frontend-api">
+    <ClerkProvider frontendApi={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <body>
       <div className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <header className="flex justify-end items-center p-4 gap-4 h-16">

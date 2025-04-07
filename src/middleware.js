@@ -9,7 +9,8 @@ export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute) {
     const user = auth.user;
     if (!user) {
-      return NextResponse.next();
+      // Redirect unauthenticated users to /sign-in
+      return NextResponse.redirect(new URL('/sign-in', request.url));
     }
   }
 
@@ -20,7 +21,8 @@ export const config = {
   matcher: [
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     '/(api|trpc)(.*)',
-    '/sign-in/:path*',
-    '/sign-up/:path*',
+    '/',
+    '/sign-in',
+    '/sign-up',
   ],
 };
