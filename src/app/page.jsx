@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { connectToDB } from "./lib/db";
 import Todo from "@/models/Todo.jsx";
 import TodoItem from "@/components/TodoItem";
@@ -19,7 +21,7 @@ export default async function Home() {
 
   return (
     <div className="max-w-md mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Todo App</h1>
+      <h1 className="text-4xl font-bold mb-6">Todo App</h1>
       {!userId ? (
         <div>
           <p>Please <Link href="/sign-in">sign in</Link></p>
