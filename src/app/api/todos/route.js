@@ -1,6 +1,7 @@
 import Todo from "@/models/Todo";
 import { connectToDB } from "../../lib/db";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server"
 
 export async function GET() {
   try {
