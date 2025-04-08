@@ -5,6 +5,7 @@ import Todo from "@/models/Todo.jsx";
 import TodoItem from "@/components/TodoItem";
 import AddTodoForm from "@/components/AddTodoForm";
 import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@clerk/nextjs"
 import Link from "next/link";
 
 export default async function Home() {
@@ -22,12 +23,12 @@ export default async function Home() {
   return (
     <div className="max-w-md mx-auto p-4">
       <h1 className="text-4xl font-bold mb-6">Todo App</h1>
-      {!userId ? (
-        <div>
+        <requireAuth fallback= {<>
+        
           <p>Please <Link href="/sign-in">sign in</Link></p>
           <p>To get your own user <Link href="/sign-up">sign up</Link> here</p>
-        </div>
-      ) : (
+        </>}>
+      
         <>
           <AddTodoForm />
           <div className="mt-6 space-y-2">
@@ -36,7 +37,7 @@ export default async function Home() {
             ))}
           </div>
         </>
-      )}
+      </requireAuth>
     </div>
   );
 }
