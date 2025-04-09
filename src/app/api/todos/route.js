@@ -25,7 +25,14 @@ export async function GET() {
 export async function POST(request) {
   try {
     await connectToDB();
-    const { userId } = auth();
+    
+    const authResult = await auth(); // Get the entire auth object
+    console.log("Full auth() object:", authResult); // Log the entire object
+    console.log("{userid} is:", { userId: authResult?.userId }); // Keep logging userId
+    const { userId } = authResult; // Get userId from the object
+    // const { userId } = auth();
+    
+    
     const { text } = await request.json();
 
     if (!userId) {
