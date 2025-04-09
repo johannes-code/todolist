@@ -40,6 +40,9 @@ export default function TodoItem({ todo }) {
           {todo.text}
         </span>
       </div>
+      <div>
+        <span className="text-sm text-gray-500">Priority: {todo.priority}</span>
+      </div>
       <button onClick={deleteTodo} className="text-red-500 hover:text-red-700">
         Delete
       </button>

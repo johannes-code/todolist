@@ -29,7 +29,7 @@ export async function POST(request) {
     
     const { userId } = await auth();
     
-    const { text } = await request.json();
+    const { text, priority } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized"}, {status: 401 });
@@ -43,7 +43,7 @@ export async function POST(request) {
       );
     }
 
-    const newTodo = await Todo.create({ text, userId });
+    const newTodo = await Todo.create({ text, userId, priority });
     return NextResponse.json(JSON.parse(JSON.stringify(newTodo)), {
       status: 201,
     });
