@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs/server"
 
 export async function PUT(request, { params }) {
   const { id } = await params;
-  const { userId } = auth()
+  const { userId } = await auth()
   await connectToDB();
   const { completed } = await request.json();
 
@@ -13,8 +13,8 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ error: "Unauthorized"}, {status: 401 })
   }
 
-  const updatedTodo = await Todo.findByIdAndUpdate(
-    {id: id, userId},
+  const updatedTodo = await Todo.findOneAndUpdate(
+    { _id: id, userId },
     { completed },
     { new: true }
   ).lean();
@@ -29,7 +29,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   const { id } = await params;
   await connectToDB();
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

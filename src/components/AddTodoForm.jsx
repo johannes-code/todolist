@@ -9,8 +9,6 @@ import { useAuth } from "@clerk/nextjs";
 
    const handleSubmit = async (e) => {
      e.preventDefault();
-     console.log("handleSubmint function called!")
-     console.log("Attempting to fetch....")
      try {
        const res = await fetch("/api/todos", {
          method: "POST",
