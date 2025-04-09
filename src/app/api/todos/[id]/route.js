@@ -7,15 +7,25 @@ export async function PUT(request, { params }) {
   const { id } = await params;
   const { userId } = await auth()
   await connectToDB();
-  const { completed } = await request.json();
+  const { completed, priority } = await request.json();
+  
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized"}, {status: 401 })
   }
 
+  const updateFields = {};
+  if (completed !== undefined) {
+    updateFields.completed = completed;
+  }
+  if (priority !== undefined){
+    updateFields.priority = priority;
+  }
+
+
   const updatedTodo = await Todo.findOneAndUpdate(
     { _id: id, userId },
-    { completed },
+    updateFields,
     { new: true }
   ).lean();
 
