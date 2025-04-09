@@ -9,14 +9,18 @@ import Link from "next/link";
 function TodoListComponent() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { userId, isSignedIn } = useAuth(); // Use the useAuth hook
+  const { userId, isSignedIn, sessionToken } = useAuth(); // Get sessionToken here
 
   useEffect(() => {
-    async function loadTodos() {
+    async function fetchTodos(token) { // Renamed to avoid confusion with the component name
       setLoading(true);
       try {
         if (isSignedIn) {
-          const response = await fetch('/api/todos'); // Fetch from your API route
+          const response = await fetch('/api/todos', {
+            headers: {
+              Authorization: `Bearer ${token}`, // Use the token
+            },
+          });
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -33,8 +37,13 @@ function TodoListComponent() {
       }
     }
 
-    loadTodos();
-  }, [userId, isSignedIn]);
+    if (isSignedIn) {
+      fetchTodos(sessionToken); // Call fetchTodos with the sessionToken
+    } else {
+      setTodos([]);
+      setLoading(false);
+    }
+  }, [userId, isSignedIn, sessionToken]); // Add sessionToken to the dependency array
 
   if (loading) {
     return <div>Loading todos...</div>;
