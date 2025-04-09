@@ -12,15 +12,11 @@ function TodoListComponent() {
   const { userId, isSignedIn, sessionToken } = useAuth(); // Get sessionToken here
 
   useEffect(() => {
-    async function fetchTodos(token) { // Renamed to avoid confusion with the component name
+       async function fetchTodos(token) {
       setLoading(true);
       try {
         if (isSignedIn) {
-          const response = await fetch('/api/todos', {
-            headers: {
-              Authorization: `Bearer ${token}`, // Use the token
-            },
-          });
+          const response = await fetch('/api/todos'); // Removed the headers option
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
