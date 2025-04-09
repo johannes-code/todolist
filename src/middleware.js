@@ -1,22 +1,24 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-export default clerkMiddleware(async (auth, request) => {
-  const publicRoutes = [/^\/$/, /^\/sign-up$/,/^\/sign-in$/ ];
+const isApiRoute = createRouteMatcher(['/api(.*)']);
 
-  const isPublicRoute = publicRoutes.some((route) => route.test(request.nextUrl.pathname));
-
-  if (!isPublicRoute) {
-    const user = auth.user
-      
-    if (!user)
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-    
+export default clerkMiddleware(async (auth, req) => {
+  if (isApiRoute(req)) {
+    await auth.protect(); // Try using auth.protect() for API routes
+  } else {
+    const publicRoutes = [/^\/$/, /^\/sign-up$/,/^\/sign-in$/ ];
+    const isPublicRoute = publicRoutes.some((route) => route.test(req.nextUrl.pathname));
+    if (!isPublicRoute) {
+      const user = auth.user;
+      if (!user) {
+        return NextResponse.redirect(new URL('/sign-in', req.url));
+      }
+    }
   }
-
   return NextResponse.next();
 });
- 
+
 export const config = {
   matcher: [
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
