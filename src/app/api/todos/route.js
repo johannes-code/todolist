@@ -1,11 +1,19 @@
 import Todo from "@/models/Todo";
 import { connectToDB } from "../../lib/db";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server"
 
 export async function GET() {
   try {
     await connectToDB();
-    const todos = await Todo.find().sort({ createdAt: -1 }).lean();
+    const { userId } = await auth();
+
+    
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized"}, { status: 401 });
+    }
+
+    const todos = await Todo.find({ userId }).sort({ createdAt: -1 }).lean();
     return NextResponse.json(todos);
   } catch (error) {
     return NextResponse.json(
@@ -18,7 +26,14 @@ export async function GET() {
 export async function POST(request) {
   try {
     await connectToDB();
+    
+    const { userId } = await auth();
+    
     const { text } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized"}, {status: 401 });
+    }
 
     if (!text?.trim()) {
       // Better validation
@@ -28,7 +43,7 @@ export async function POST(request) {
       );
     }
 
-    const newTodo = await Todo.create({ text });
+    const newTodo = await Todo.create({ text, userId });
     return NextResponse.json(JSON.parse(JSON.stringify(newTodo)), {
       status: 201,
     });
