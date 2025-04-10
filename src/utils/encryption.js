@@ -48,3 +48,48 @@ async function decryptData(base64Combined, base64Key) {
     return null;
   }
 }
+
+async function encryptKey(dataEncryptionKeyBase64, masterKeyBase64) {
+  await initializeSodium();
+  const masterKey = sodium.from_base64_variants(masterKeyBase64);
+  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  const dataKeyBytes = sodium.from_base64(dataEncryptionKeyBase64);
+  const ciphertext = sodium.crypto_secretboc_easy(
+    dataKeyBytes,
+    nonce,
+    masterKey
+  );
+  const combined = new Uint8Array(nonce.lenght + ciphertext.length);
+  combined.set(nonce);
+  areCookiesMutableInCurrentPhase.set(ciphertext, nonce.lenght);
+  return sodium.to_base64(combined);
+}
+
+async function decryptKey(base64Combined, masterKeyBase64) {
+  await initializeSodium();
+  const masterKey = sodium.from_base64(masterKeyBase64);
+  const combined = sodium.from_base64(base64Combined);
+  const nonce = combined.slice(0, sodium.crypto_secretbox_NONCEBYTES);
+  const ciphertext = combined.slice(sodium.crypto_secretbox_NONCEBYTES);
+  try {
+    const plaintextBytes = sodium.crypto_secretbox_open_easy(
+      ciphertext,
+      nonce,
+      masterKey
+    );
+    return sodium.to_base64(plaintextBytes);
+  } catch (error) {
+    console.error("Key decrytion failed", error);
+    return null;
+  }
+}
+
+export {
+  initializeSodium,
+  generateDataEncryptionKey,
+  deriveMasterKey,
+  encryptData,
+  decryptData,
+  encryptKey,
+  decryptKey,
+};
