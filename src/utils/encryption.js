@@ -24,7 +24,7 @@ async function encryptData(data, base64Key) {
   const key = sodium.from_base64(base64Key);
   const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   const ciphertext = sodium.crypto_secretbox_easy(data, nonce, key);
-  const combined = new Uint8Array(nonce.length + ciphertext.lengt);
+  const combined = new Uint8Array(nonce.length + ciphertext.length);
   combined.set(nonce);
   combined.set(ciphertext, nonce.length);
   return sodium.to_base64(combined);
@@ -51,17 +51,17 @@ async function decryptData(base64Combined, base64Key) {
 
 async function encryptKey(dataEncryptionKeyBase64, masterKeyBase64) {
   await initializeSodium();
-  const masterKey = sodium.from_base64_variants(masterKeyBase64);
+  const masterKey = sodium.from_base64(masterKeyBase64);
   const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
   const dataKeyBytes = sodium.from_base64(dataEncryptionKeyBase64);
-  const ciphertext = sodium.crypto_secretboc_easy(
+  const ciphertext = sodium.crypto_secretbox_easy(
     dataKeyBytes,
     nonce,
     masterKey
   );
-  const combined = new Uint8Array(nonce.lenght + ciphertext.length);
+  const combined = new Uint8Array(nonce.length + ciphertext.length);
   combined.set(nonce);
-  areCookiesMutableInCurrentPhase.set(ciphertext, nonce.lenght);
+  combined.set(ciphertext, nonce.length);
   return sodium.to_base64(combined);
 }
 
