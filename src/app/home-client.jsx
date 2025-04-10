@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import AddTodoForm from '@/components/AddTodoForm';
-import TodoItem from '@/components/TodoItem';
+import { useState, useEffect } from "react";
+import AddTodoForm from "@/components/AddTodoForm";
+import TodoItem from "@/components/TodoItem";
 import { useAuth } from "@clerk/nextjs"; // Import useAuth
 import Link from "next/link";
 
@@ -12,11 +12,11 @@ function TodoListComponent() {
   const { userId, isSignedIn, sessionToken } = useAuth(); // Get sessionToken here
 
   useEffect(() => {
-       async function fetchTodos(token) {
+    async function fetchTodos(token) {
       setLoading(true);
       try {
         if (isSignedIn) {
-          const response = await fetch('/api/todos'); // Removed the headers option
+          const response = await fetch("/api/todos");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -58,8 +58,19 @@ function TodoListComponent() {
         </>
       ) : (
         <>
-          <p>Please <Link href="/sign-in">sign in</Link></p>
-          <p>To get your own user <Link href="/sign-up">sign up</Link> here</p>
+          <p>
+            Please{" "}
+            <Link className="text-red-600" href="/sign-in">
+              sign in
+            </Link>
+          </p>
+          <p>
+            To get your own user{" "}
+            <Link className="text-red-600" href="/sign-up">
+              sign up
+            </Link>{" "}
+            here
+          </p>
         </>
       )}
     </>
