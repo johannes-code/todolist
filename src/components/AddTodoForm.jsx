@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { encryptData } from "@/utils/encryption";
-import { useEncryptionKey } from "@/app/layout";
+import { useEncryptionKey } from "@/app/home-client";
 
 export default function AddTodoForm() {
   const [text, setText] = useState("");

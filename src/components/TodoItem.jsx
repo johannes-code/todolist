@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useEncryptionKey } from "@/app/layout";
+import { useEncryptionKey } from "@/app/home-client";
 import { decryptData } from "@/utils/encryption";
 
 export default function TodoItem({ todo }) {

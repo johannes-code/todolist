@@ -1,87 +1,71 @@
-"use client";
 
-import { useState, useEffect } from "react";
-import AddTodoForm from "@/components/AddTodoForm";
-import TodoItem from "@/components/TodoItem";
-import { useAuth } from "@clerk/nextjs"; // Import useAuth
-import Link from "next/link";
 
-function TodoListComponent() {
-  const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { userId, isSignedIn, sessionToken } = useAuth(); // Get sessionToken here
+'use client';
+
+import { useState, useEffect, createContext, useContext } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { initializeSodium } from '@/utils/encryption';
+import TodoItem from '@/components/TodoItem'; 
+import AddTodoForm from '@/components/AddTodoForm'; 
+
+// Create a Context to hold the encryption key
+const EncryptionKeyContext = createContext(null);
+export const useEncryptionKey = () => useContext(EncryptionKeyContext);
+
+function EncryptionKeyProvider({ children }) {
+  const { isSignedIn, isLoading, user } = useUser();
+  const [dataEncryptionKey, setDataEncryptionKey] = useState(null);
+  const [sodiumInitialized, setSodiumInitialized] = useState(false);
 
   useEffect(() => {
-    async function fetchTodos(token) {
-      setLoading(true);
-      try {
-        if (isSignedIn) {
-          const response = await fetch("/api/todos");
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+    const initSodium = async () => {
+      await initializeSodium();
+      setSodiumInitialized(true);
+    };
+
+    initSodium();
+  }, []);
+
+  useEffect(() => {
+    if (isSignedIn && user && sodiumInitialized) {
+      const fetchEncryptionKey = async () => {
+        try {
+          const response = await fetch('/api/encryption/retrieve-key');
+          if (response.ok) {
+            const data = await response.json();
+            setDataEncryptionKey(data.dataEncryptionKey);
+            console.log('Data encryption key retrieved successfully.');
+          } else {
+            console.error('Failed to retrieve data encryption key:', response.status);
+            // Handle error appropriately
           }
-          const data = await response.json();
-          setTodos(data);
-        } else {
-          setTodos([]); // Clear todos if not signed in
+        } catch (error) {
+          console.error('Error fetching data encryption key:', error);
+          // Handle error appropriately
         }
-      } catch (error) {
-        console.error("Error loading todos:", error);
-        // Handle error appropriately
-      } finally {
-        setLoading(false);
-      }
-    }
+      };
 
-    if (isSignedIn) {
-      fetchTodos(sessionToken); // Call fetchTodos with the sessionToken
-    } else {
-      setTodos([]);
-      setLoading(false);
+      fetchEncryptionKey();
+    } else if (!isSignedIn) {
+      setDataEncryptionKey(null); // Clear the key on logout
     }
-  }, [userId, isSignedIn, sessionToken]); // Add sessionToken to the dependency array
-
-  if (loading) {
-    return <div>Loading todos...</div>;
-  }
+  }, [isSignedIn, user, sodiumInitialized]);
 
   return (
-    <>
-      {isSignedIn ? (
-        <>
-          <AddTodoForm />
-          <div className="mt-6 space-y-2">
-            {todos.map((todo, index) => (
-              <TodoItem key={index} todo={todo} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <p>
-            Please{" "}
-            <Link className="text-red-600" href="/sign-in">
-              sign in
-            </Link>
-          </p>
-          <p>
-            To get your own user{" "}
-            <Link className="text-red-600" href="/sign-up">
-              sign up
-            </Link>{" "}
-            here
-          </p>
-        </>
-      )}
-    </>
+    <EncryptionKeyContext.Provider value={dataEncryptionKey}>
+      {children}
+    </EncryptionKeyContext.Provider>
   );
 }
 
-export default function Home() {
+export default function HomeClient() {
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-4xl font-bold mb-6">Todo App</h1>
-      <TodoListComponent /> {/* Render the TodoListComponent directly */}
-    </div>
+    <EncryptionKeyProvider>
+      <div className="max-w-md mx-auto p-4">
+        <h1 className="text-4xl font-bold mb-6">Todo App</h1>
+        <TodoItem/>
+        <AddTodoForm />
+      </div>
+    </EncryptionKeyProvider>
   );
 }
