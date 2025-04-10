@@ -18,6 +18,7 @@ function EncryptionKeyProvider({ children }) {
   const [sodiumInitialized, setSodiumInitialized] = useState(false);
 
   useEffect(() => {
+    console.log('EncryptionKeyProvider - isSignedIn:', isSignedIn, 'user:', user);
     const initSodium = async () => {
       await initializeSodium();
       setSodiumInitialized(true);
@@ -69,3 +70,4 @@ export default function HomeClient() {
     </EncryptionKeyProvider>
   );
 }
+
