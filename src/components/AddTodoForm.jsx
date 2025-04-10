@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import {
+  encryptData,
+  generateDataEncryptionKey,
+  deriveMasterKey,
+  encryptKey,
+} from "@/utils/encryption";
 
 export default function AddTodoForm() {
   const [text, setText] = useState("");
