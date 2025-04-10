@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs";
 import { connectToDB } from "@/lib/mongoose";
-import User from "@/models/user"; // Assuming you have a User model
+import User from "@/models/User";
 import sodium, { initializeSodium } from "@/utils/encryption";
 
 const SERVER_SECRET_KEY = process.env.SERVER_ENCRYPTION_SECRET;

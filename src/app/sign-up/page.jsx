@@ -6,7 +6,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (user && user.id) {
-      triggerBackendKeyGeneration(user.id);
+      triggerBackEndKeyGeneration(user.id);
     }
   }, [user]);
 

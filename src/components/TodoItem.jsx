@@ -1,9 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEncryptionKey } from "@/app/layout";
+import { decryptData } from "@/utils/encryption";
 
 export default function TodoItem({ todo }) {
   const [completed, setCompleted] = useState(todo.completed);
+  const [decryptedText, setDecryptedText] = useState("");
+  const dataEncryptionKey = useEncryptionKey();
+
+  useEffect(() => {
+    const decrypt = async () => {
+      if (dataEncryptionKey && todo.text) {
+        const decrypted = await decryptData(todo.text, dataEncryptionKey);
+        setDecryptedText(decrypted || "Decryption failed");
+      } else if (todo.text) {
+        setDecryptedText("Loading...");
+      }
+    };
+    decrypt();
+  }, [dataEncryptionKey, todo.text]);
 
   const toggleCompleted = async () => {
     try {
@@ -37,7 +53,7 @@ export default function TodoItem({ todo }) {
           className="h-5 w-5"
         />
         <span className={completed ? "line-through text-gray-400" : ""}>
-          {todo.text}
+          {decryptedText}
         </span>
       </div>
       <div>

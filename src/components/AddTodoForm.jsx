@@ -2,28 +2,33 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import {
-  encryptData,
-  generateDataEncryptionKey,
-  deriveMasterKey,
-  encryptKey,
-} from "@/utils/encryption";
+import { encryptData } from "@/utils/encryption";
+import { useEncryptionKey } from "@/app/layout";
 
 export default function AddTodoForm() {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
   const { sessionToken } = useAuth();
+  const dataEncryptionKey = useEncryptionKey();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!dataEncryptionKey) {
+      console.error("Encryption key not available");
+      return;
+    }
+
     try {
+      const encryptedText = await encryptData(text, dataEncryptionKey);
+
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `bearer ${sessionToken}`,
         },
-        body: JSON.stringify({ text, priority }),
+        body: JSON.stringify({ text: encryptedText, priority }),
       });
       if (res.ok) {
         setText("");
