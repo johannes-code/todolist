@@ -5,25 +5,26 @@ import { useEncryptionKey } from "@/app/home-client";
 import { decryptData } from "@/utils/encryption";
 
 export default function TodoItem({ todo }) {
-  const [completed, setCompleted] = useState(todo.completed);
+  const [completed, setCompleted] = useState(todo?.completed || false); 
   const [decryptedText, setDecryptedText] = useState("");
   const dataEncryptionKey = useEncryptionKey();
 
   useEffect(() => {
     const decrypt = async () => {
-      if (dataEncryptionKey && todo.text) {
+      if (dataEncryptionKey && todo?.text) { 
         const decrypted = await decryptData(todo.text, dataEncryptionKey);
         setDecryptedText(decrypted || "Decryption failed");
-      } else if (todo.text) {
+      } else if (todo?.text) {
         setDecryptedText("Loading...");
       }
     };
+
     decrypt();
-  }, [dataEncryptionKey, todo.text]);
+  }, [dataEncryptionKey, todo?.text]); 
 
   const toggleCompleted = async () => {
     try {
-      const res = await fetch(`api/todos/${todo._id}`, {
+      const res = await fetch(`api/todos/${todo?._id}`, { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: !completed }),
@@ -36,7 +37,7 @@ export default function TodoItem({ todo }) {
 
   const deleteTodo = async () => {
     try {
-      await fetch(`/api/todos/${todo._id}`, { method: "DELETE" });
+      await fetch(`/api/todos/${todo?._id}`, { method: "DELETE" }); 
       window.location.reload();
     } catch (err) {
       console.error(err);
@@ -57,7 +58,7 @@ export default function TodoItem({ todo }) {
         </span>
       </div>
       <div>
-        <span className="text-sm text-gray-500">Priority: {todo.priority}</span>
+        <span className="text-sm text-gray-500">Priority: {todo?.priority}</span> 
       </div>
       <button onClick={deleteTodo} className="text-red-500 hover:text-red-700">
         Delete
