@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.13.0",
     "@types/mongoose": "^5.11.96",
+    "libsodium-wrappers": "^0.7.15",
     "mongodb": "^6.15.0",
     "mongoose": "^8.13.1",
     "next": "^15.2.4",
