@@ -85,6 +85,7 @@ async function decryptKey(base64Combined, masterKeyBase64) {
 }
 
 export {
+  sodium,
   initializeSodium,
   generateDataEncryptionKey,
   deriveMasterKey,

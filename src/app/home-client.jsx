@@ -31,7 +31,7 @@ function EncryptionKeyProvider({ children }) {
     if (isSignedIn && user && sodiumInitialized) {
       const fetchEncryptionKey = async () => {
         try {
-          const response = await fetch('/api/encryption/retrieve-key');
+          const response = await fetch('api/encryption/retrieve-key');
           if (response.ok) {
             const data = await response.json();
             setDataEncryptionKey(data.dataEncryptionKey);

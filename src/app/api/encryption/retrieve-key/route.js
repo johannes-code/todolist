@@ -1,9 +1,8 @@
-// src/app/api/encryption/retrieve-key/route.js
-
 import { auth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/app/lib/db";
 import User from "@/models/User";
-import { sodium,initializeSodium } from "@/utils/encryption";
+
+import { sodium, initializeSodium } from "@/utils/encryption";
 
 const SERVER_SECRET_KEY = process.env.SERVER_ENCRYPTION_SECRET;
 
@@ -27,31 +26,53 @@ async function decryptWithServerKey(base64Combined) {
 }
 
 export async function GET() {
+  console.log("GET /api/encryption/retrieve-key called"); 
   const { userId: clerkUserId } = await auth();
+  console.log("Clerk User ID:", clerkUserId); 
 
   if (!clerkUserId) {
-    return new Response("Unauthorized", { status: 401 });
+    console.log("User not authenticated"); 
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-
   if (!SERVER_SECRET_KEY) {
     console.error("SERVER_ENCRYPTION_SECRET environment variable is not set!");
-    return new Response("Server configuration error", { status: 500 });
+    return new Response(JSON.stringify ({ error: "Server configuration error" }), {
+      status: 500,
+      headers: { "Content-type": "application/json" },
+    });
   }
+  console.log("SERVER_SECRET_KEY is set"); 
 
   try {
+    console.log("Connecting to database..."); 
     await connectToDB();
+    console.log("Database connected"); 
 
-    const user = await User.findOne({ clerkId: clerkUserId });
+    const user = await User.findOne({ clerkId: clerkUserId }); 
+    console.log("User found:", user); 
 
     if (!user || !user.encryptedDataKey) {
-      return new Response("Encryption key not found for user", { status: 404 });
+      console.log("Encryption key not found for user"); 
+      return new Response(JSON.stringify({ error: "Encryption key not found for user" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const encryptedKeyBase64 = user.encryptedDataKey;
+    console.log("Encrypted key:", encryptedKeyBase64); 
     const decryptedKeyBase64 = await decryptWithServerKey(encryptedKeyBase64);
+    console.log("Decrypted key:", decryptedKeyBase64); 
 
     if (!decryptedKeyBase64) {
-      return new Response("Failed to decrypt encryption key", { status: 500 });
+      console.log("Failed to decrypt encryption key"); 
+      return new Response(JSON.stringify({ error: "Failed to decrypt encryption key" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     return new Response(
