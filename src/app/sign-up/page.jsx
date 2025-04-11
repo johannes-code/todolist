@@ -1,3 +1,5 @@
+"use client"
+
 import { SignUp, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 
