@@ -6,6 +6,6 @@ const HomeClient = dynamic(() => import('../app/home-client'), {
   ssr: false,
 });
 
-export default function HomeClientWrapper() {
-  return <HomeClient />;
+export default function HomeClientWrapper({ children }) {
+  return <HomeClient>{children}</HomeClient>; 
 }

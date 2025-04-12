@@ -5,8 +5,8 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { initializeSodium } from '@/utils/encryption';
-import TodoItem from '@/components/TodoItem'; 
-import AddTodoForm from '@/components/AddTodoForm'; 
+import TodoItem from '@/components/TodoItem';
+import AddTodoForm from '@/components/AddTodoForm';
 
 // Create a Context to hold the encryption key
 const EncryptionKeyContext = createContext(null);
@@ -38,11 +38,11 @@ function EncryptionKeyProvider({ children }) {
             console.log('Data encryption key retrieved successfully.');
           } else {
             console.error('Failed to retrieve data encryption key:', response.status);
-            // Handle error appropriately
+            
           }
         } catch (error) {
           console.error('Error fetching data encryption key:', error);
-          // Handle error appropriately
+          
         }
       };
 
@@ -59,11 +59,12 @@ function EncryptionKeyProvider({ children }) {
   );
 }
 
-export default function HomeClient() {
+export default function HomeClient({ children }) { 
   return (
     <EncryptionKeyProvider>
       <div className="max-w-md mx-auto p-4">
         <h1 className="text-4xl font-bold mb-6">Todo App</h1>
+        {children} 
         <TodoItem/>
         <AddTodoForm />
       </div>

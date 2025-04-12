@@ -1,9 +1,7 @@
-
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from 'next/link';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import HomeClientWrapper from '@/components/HomeClientWrapper';
 
 const geistSans = Geist({
@@ -24,7 +22,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <ClerkProvider publisableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+      <ClerkProvider frontendApi={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
         <body>
           <div className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
             <header className="flex justify-end items-center p-4 gap-4 h-16">
@@ -36,7 +34,7 @@ export default function RootLayout({ children }) {
                 <UserButton />
               </SignedIn>
             </header>
-            <HomeClientWrapper />
+            {children} 
           </div>
         </body>
       </ClerkProvider>
