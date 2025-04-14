@@ -1,9 +1,9 @@
 // src/app/api/encryption/setup/route.js
 
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/app/lib/db";
 import User from "@/models/User";
-import sodium, { initializeSodium } from "@/utils/encryption";
+import { sodium, initializeSodium } from "@/utils/encryption";
 
 const SERVER_SECRET_KEY = process.env.SERVER_ENCRYPTION_SECRET;
 
