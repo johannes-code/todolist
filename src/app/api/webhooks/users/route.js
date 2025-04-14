@@ -3,8 +3,10 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { mongoose } from "mongoose";
 import User from "@/models/User";
+import { sodium, generateSalt, encryptKey } from "@/utils/encryption";
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+const masterEncryptionKeyBase64 = process.env.MASTER_ENCRYPTION_KEY;
 
 export async function POST(req) {
   const payload = await req.text();
@@ -43,11 +45,21 @@ export async function POST(req) {
     try {
       await mongoose.connect(process.env.MONGODB_URI);
 
-      const newUser = new User({
+      const dataEncryptionKey = sodium.to_base64(
+        sodium.crypto_secretbox_keygen()
+      );
+
+      const encryptedDataKey = await encryptKey(
+        dataEncryptionKey,
+        masterEncryptionKeyBase64
+      );
+
+      const newUser = await User.create({
         clerkId: id,
         email: email_addresses[0]?.email_address,
         firstName: first_name,
         lastName: last_name,
+        encryptedDataKey: encryptedDataKey,
       });
 
       await newUser.save();

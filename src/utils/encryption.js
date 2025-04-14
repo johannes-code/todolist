@@ -1,5 +1,4 @@
 import sodium from "libsodium-wrappers";
-import { scryptSync } from "crypto-browserify";
 
 async function initializeSodium() {
   await sodium.ready;
@@ -15,7 +14,17 @@ async function deriveMasterKey(password, salt) {
   await initializeSodium();
   const passwordBuffer = new TextEncoder().encode(password);
   const saltBuffer = sodium.from_base64(salt); //Assuming salt is stored as b64
-  const derivedKey = scryptSync(passwordBuffer, saltBuffer, 32); //32b for AES-256
+  const keyLength = 32;
+  const opsLimit = sodium.crypto_pwhash_OPSLIMIT_MODERATE;
+  const memLimit = sodium.crypto_pwhash_MEMLIMIT_MODERATE;
+  const derivedKey = sodium.crypto_pwhash(
+    keyLength,
+    passwordBuffer,
+    saltBuffer,
+    opsLimit,
+    memLimit,
+    sodium.crypto_pwhash_ALG_DEFAULT
+  );
   return sodium.to_base64(derivedKey);
 }
 

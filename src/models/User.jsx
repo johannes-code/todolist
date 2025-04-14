@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     firstName: { type: String, required: true, unique: false },
     lastName: { type: String, required: true, unique: false },
+    passwordHash: { type: String, required: true },
+    salt: { type: String, required: true },
   },
   { timestamps: true }
 );
