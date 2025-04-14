@@ -2,7 +2,7 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-import User from "@/models/user";
+import User from "@/app/models/user";
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
