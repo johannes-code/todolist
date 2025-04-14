@@ -20,6 +20,8 @@
     "react-dom": "^19.0.0",
     "styled-jsx": "^5.1.6",
     "svix": "^1.64.0"
+
+    
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
