@@ -1,7 +1,7 @@
 // src/app/api/encryption/setup/route.js
 
 import { auth } from "@clerk/nextjs";
-import { connectToDB } from "@/lib/mongoose";
+import { connectToDB } from "@/app/lib/db";
 import User from "@/models/User";
 import sodium, { initializeSodium } from "@/utils/encryption";
 
