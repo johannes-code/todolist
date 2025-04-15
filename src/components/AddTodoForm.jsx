@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { encryptData } from "@/app/utils/encryptionUtils";
 
-export default function AddTodoForm() {
+export default function AddTodoForm({ encryptionKey }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
   const { sessionToken } = useAuth();
@@ -11,13 +12,18 @@ export default function AddTodoForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const encryptionKey = await encryptData(encryptionKey, text);
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `bearer ${sessionToken}`,
         },
-        body: JSON.stringify({ text, priority }),
+        body: JSON.stringify({
+          cipthertext: Array.from(encrypted.ciphertext),
+          iv: Array.from(encrypted.iv),
+          priority: priority,
+        }),
       });
       if (res.ok) {
         setText("");

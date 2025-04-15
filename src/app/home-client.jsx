@@ -1,20 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import AddTodoForm from "@/components/AddTodoForm";
+import AddTodoForm from "@/components/AddTodoForm.jsx";
 import TodoItem from "@/components/TodoItem";
-import { useAuth } from "@clerk/nextjs"; // Import useAuth
+import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import {
-  generateEncryptionKey,
-  exportKey,
-  encryptData,
-} from "@/utils/encryptionUtils";
+import { generateEncryptionKey, exportKey } from "@/app/utils/encryptionUtils";
 
 function TodoListComponent() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { userId, isSignedIn, sessionToken } = useAuth(); // Get sessionToken here
+  const { userId, isSignedIn, sessionToken } = useAuth();
+  const [encryptionKey, setEncryptionKey] = useState(null);
 
   useEffect(() => {
     async function fetchTodos(token) {
@@ -28,58 +25,66 @@ function TodoListComponent() {
           const data = await response.json();
           setTodos(data);
         } else {
-          setTodos([]); // Clear todos if not signed in
+          setTodos([]);
         }
       } catch (error) {
         console.error("Error loading todos:", error);
-        // Handle error appropriately
       } finally {
         setLoading(false);
       }
     }
+
     async function initializeEncryptionKey() {
       if (isSignedIn && userId) {
-        const userProfileResponse = await fetch(`/api/user/${userId}`, {
-          headers: { Authorization: `Bearer ${sessionToken}` },
+        const userProfileResponse = await fetch(`/api/user-profile/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
         });
         const userProfileData = await userProfileResponse.json();
 
-        if (!userProfileData.encryptedKey) {
+        if (!userProfileData.hasEncryptedKey) {
           const newEncryptionKey = await generateEncryptionKey();
           const exportedKey = await exportKey(newEncryptionKey);
 
-          const keyStoreagePayload = {
+          const keyStoragePayload = {
             userId: userId,
-            exportKey: JSON.stringify(exportedKey),
+            exportedKey: JSON.stringify(exportedKey),
           };
 
-          const storeKeyResponse = await fetch("/api/store-encrytion-key", {
+          const storeKeyResponse = await fetch("/api/store-encryption-key", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${sessionToken}`,
             },
-            body: JSON.stringify(keyStoreagePayload),
+            body: JSON.stringify(keyStoragePayload),
           });
+
           if (!storeKeyResponse.ok) {
-            console.error("Failed to store encryption key:", storeKeyResponse);
+            console.error("Error storing encryption key:", storeKeyResponse);
           } else {
-            console.log("Encryption key stored successfully.");
+            console.log(
+              "Encryption key generated and stored (insecurely for now)."
+            );
+            setEncryptionKey(newEncryptionKey);
           }
         } else {
-          console.log("Encryption key allready exists for this user.");
+          console.log(
+            "Encryption key already exists for this user (need to retrieve and import it)."
+          );
         }
       }
     }
 
     if (isSignedIn) {
       fetchTodos(sessionToken);
-      initializeEncryptionKey(); // Call fetchTodos with the sessionToken
+      initializeEncryptionKey();
     } else {
       setTodos([]);
       setLoading(false);
     }
-  }, [userId, isSignedIn, sessionToken]); // Add sessionToken to the dependency array
+  }, [userId, isSignedIn, sessionToken]);
 
   if (loading) {
     return <div>Loading todos...</div>;
@@ -89,7 +94,8 @@ function TodoListComponent() {
     <>
       {isSignedIn ? (
         <>
-          <AddTodoForm />
+          {encryptionKey && <AddTodoForm encryptionKey={encryptionKey} />}{" "}
+          {/* Conditionally render AddTodoForm */}
           <div className="mt-6 space-y-2">
             {todos.map((todo, index) => (
               <TodoItem key={index} todo={todo} />
@@ -114,14 +120,5 @@ function TodoListComponent() {
         </>
       )}
     </>
-  );
-}
-
-export default function Home() {
-  return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-4xl font-bold mb-6">Todo App</h1>
-      <TodoListComponent /> {/* Render the TodoListComponent directly */}
-    </div>
   );
 }
