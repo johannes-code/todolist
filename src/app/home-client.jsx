@@ -5,6 +5,11 @@ import AddTodoForm from "@/components/AddTodoForm";
 import TodoItem from "@/components/TodoItem";
 import { useAuth } from "@clerk/nextjs"; // Import useAuth
 import Link from "next/link";
+import {
+  generateEncryptionKey,
+  exportKey,
+  encryptData,
+} from "@/utils/encryptionUtils";
 
 function TodoListComponent() {
   const [todos, setTodos] = useState([]);
@@ -32,9 +37,44 @@ function TodoListComponent() {
         setLoading(false);
       }
     }
+    async function initializeEncryptionKey() {
+      if (isSignedIn && userId) {
+        const userProfileResponse = await fetch(`/api/user/${userId}`, {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        });
+        const userProfileData = await userProfileResponse.json();
+
+        if (!userProfileData.encryptedKey) {
+          const newEncryptionKey = await generateEncryptionKey();
+          const exportedKey = await exportKey(newEncryptionKey);
+
+          const keyStoreagePayload = {
+            userId: userId,
+            exportKey: JSON.stringify(exportedKey),
+          };
+
+          const storeKeyResponse = await fetch("/api/store-encrytion-key", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify(keyStoreagePayload),
+          });
+          if (!storeKeyResponse.ok) {
+            console.error("Failed to store encryption key:", storeKeyResponse);
+          } else {
+            console.log("Encryption key stored successfully.");
+          }
+        } else {
+          console.log("Encryption key allready exists for this user.");
+        }
+      }
+    }
 
     if (isSignedIn) {
-      fetchTodos(sessionToken); // Call fetchTodos with the sessionToken
+      fetchTodos(sessionToken);
+      initializeEncryptionKey(); // Call fetchTodos with the sessionToken
     } else {
       setTodos([]);
       setLoading(false);
