@@ -5,7 +5,7 @@ const isApiRoute = createRouteMatcher(['/api(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isApiRoute(req)) {
-    await auth.protect(); // Try using auth.protect() for API routes
+    // await auth.protect(); // Try using auth.protect() for API routes
   } else {
     const publicRoutes = [/^\/$/, /^\/sign-up$/,/^\/sign-in$/ ];
     const isPublicRoute = publicRoutes.some((route) => route.test(req.nextUrl.pathname));

@@ -7,7 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { generateEncryptionKey, exportKey } from "@/app/utils/encryptionUtils";
 
-function TodoListComponent() {
+ export default function TodoListComponent() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const { userId, isSignedIn, sessionToken } = useAuth();
@@ -73,10 +73,11 @@ function TodoListComponent() {
           console.log(
             "Encryption key already exists for this user (need to retrieve and import it)."
           );
+          setEncryptionKey("existing-key");
         }
       }
     }
-
+    console.log("encrytionKEY:", encryptionKey)
     if (isSignedIn) {
       fetchTodos(sessionToken);
       initializeEncryptionKey();
@@ -94,6 +95,7 @@ function TodoListComponent() {
     <>
       {isSignedIn ? (
         <>
+          <h1 className="text-4xl font-bold mb-6">Todo App</h1>
           {encryptionKey && <AddTodoForm encryptionKey={encryptionKey} />}{" "}
           {/* Conditionally render AddTodoForm */}
           <div className="mt-6 space-y-2">
