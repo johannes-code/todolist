@@ -12,7 +12,7 @@ export default function AddTodoForm({ encryptionKey }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const encryptionKey = await encryptData(encryptionKey, text);
+      const encrypted = await encryptData(encryptionKey, text);
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: {
@@ -20,8 +20,8 @@ export default function AddTodoForm({ encryptionKey }) {
           Authorization: `bearer ${sessionToken}`,
         },
         body: JSON.stringify({
-          cipthertext: Array.from(encrypted.ciphertext),
-          iv: Array.from(encrypted.iv),
+          ciphertext: Array.from(new Uint8Array(encrypted.ciphertext)),
+          iv: Array.from(new Uint8Array(encrypted.iv)),
           priority: priority,
         }),
       });
