@@ -48,11 +48,13 @@ export default function TodoListComponent() {
 
       if (!userProfileData.hasEncryptedKey) {
         const newEncryptionKey = await generateEncryptionKey();
+        console.log("New encryption key generated:", newEncryptionKey);
+
         const exportedKey = await exportKey(newEncryptionKey);
 
         const keyStoragePayload = {
           userId: userId,
-          exportedKey: JSON.stringify(exportedKey),
+          exportedKey: Array.from(new Uint8Array(exportedKey)),
         };
 
         const storeKeyResponse = await fetch("/api/store-encryption-key", {
@@ -90,7 +92,7 @@ export default function TodoListComponent() {
         if (userProfileDataWithKey && userProfileDataWithKey.encryptedKey) {
           try {
             const importedKey = await importKey(
-              JSON.parse(userProfileDataWithKey.encryptedKey)
+              userProfileDataWithKey.encryptedKey
             );
             setEncryptionKey(importedKey);
           } catch (error) {
@@ -103,6 +105,7 @@ export default function TodoListComponent() {
 
   useEffect(() => {
     console.log("encrytionKEY:", encryptionKey);
+    console.log("Session Token in TodoListComponent:", sessionToken);
     if (isSignedIn) {
       fetchTodos(sessionToken);
       initializeEncryptionKey();
@@ -121,7 +124,12 @@ export default function TodoListComponent() {
       {isSignedIn ? (
         <>
           <h1 className="text-4xl font-bold mb-6">Todo App</h1>
-          {encryptionKey && <AddTodoForm encryptionKey={encryptionKey} />}{" "}
+          {encryptionKey && (
+            <AddTodoForm
+              encryptionKey={encryptionKey}
+              sessionToken={sessionToken}
+            />
+          )}
           {/* Conditionally render AddTodoForm */}
           <div className="mt-6 space-y-2">
             {todos.map((todo, index) => (

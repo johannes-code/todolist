@@ -1,18 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+// import { useAuth } from "@clerk/nextjs";
 import { encryptData } from "@/app/utils/encryptionUtils";
 
-export default function AddTodoForm({ encryptionKey }) {
+export default function AddTodoForm({ encryptionKey, sessionToken }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
-  const { sessionToken } = useAuth();
+  // const { sessionToken } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const encrypted = await encryptData(encryptionKey, text);
+      console.log("Session Token in handleSubmit:", sessionToken);
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: {

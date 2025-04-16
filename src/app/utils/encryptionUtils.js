@@ -7,10 +7,14 @@ async function generateEncryptionKey() {
     true,
     ["encrypt", "decrypt"]
   );
+  console.log("Generated Key:", key);
+  return key;
 }
 
 async function exportKey(key) {
-  return await window.crypto.subtle.exportKey("raw", key);
+  const exported = await window.crypto.subtle.exportKey("raw", key);
+  console.log("Exported Key (Raw):", exported);
+  return exported;
 }
 
 async function importKey(exportedKey) {
