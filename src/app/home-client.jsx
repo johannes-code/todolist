@@ -10,6 +10,7 @@ import {
   exportKey,
   importKey,
 } from "@/app/utils/encryptionUtils";
+import TestAuth from "@/components/TestAuth.jsx";
 
 export default function TodoListComponent() {
   const [todos, setTodos] = useState([]);
@@ -106,10 +107,25 @@ export default function TodoListComponent() {
   useEffect(() => {
     console.log("encrytionKEY:", encryptionKey);
     console.log("Session Token in TodoListComponent:", sessionToken);
-    if (isSignedIn) {
+    console.log("Is Signed In:", isSignedIn);
+
+    if (isSignedIn && sessionToken) {
       fetchTodos(sessionToken);
       initializeEncryptionKey();
-    } else {
+    } else if (!isSignedIn) {
+      setTodos([]);
+      setLoading(false);
+    }
+  }, [userId, isSignedIn, sessionToken]);
+  useEffect(() => {
+    console.log("encrytionKEY:", encryptionKey);
+    console.log("Session Token in TodoListComponent:", sessionToken);
+    console.log("Is Signed In:", isSignedIn);
+
+    if (isSignedIn && sessionToken) {
+      fetchTodos(sessionToken);
+      initializeEncryptionKey();
+    } else if (!isSignedIn) {
       setTodos([]);
       setLoading(false);
     }
@@ -119,41 +135,84 @@ export default function TodoListComponent() {
     return <div>Loading todos...</div>;
   }
 
+  //   return (
+  //     <>
+  //       {isSignedIn ? (
+  //         <>
+  //           <h1 className="text-4xl font-bold mb-6">Todo App</h1>
+  //           {encryptionKey && (
+  //             <AddTodoForm
+  //               encryptionKey={encryptionKey}
+  //               sessionToken={sessionToken}
+  //             />
+  //           )}
+  //           {/* Conditionally render AddTodoForm */}
+  //           <div className="mt-6 space-y-2">
+  //             {todos.map((todo, index) => (
+  //               <TodoItem key={index} todo={todo} />
+  //             ))}
+  //           </div>
+  //         </>
+  //       ) : (
+  //         <>
+  //           <p>
+  //             Please{" "}
+  //             <Link className="text-red-600" href="/sign-in">
+  //               sign in
+  //             </Link>
+  //           </p>
+  //           <p>
+  //             To get your own user{" "}
+  //             <Link className="text-red-600" href="/sign-up">
+  //               sign up
+  //             </Link>{" "}
+  //             here
+  //           </p>
+  //         </>
+  //       )}
+  //     </>
+  //   );
+
   return (
     <>
-      {isSignedIn ? (
-        <>
-          <h1 className="text-4xl font-bold mb-6">Todo App</h1>
-          {encryptionKey && (
-            <AddTodoForm
-              encryptionKey={encryptionKey}
-              sessionToken={sessionToken}
-            />
-          )}
-          {/* Conditionally render AddTodoForm */}
-          <div className="mt-6 space-y-2">
-            {todos.map((todo, index) => (
-              <TodoItem key={index} todo={todo} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <p>
-            Please{" "}
-            <Link className="text-red-600" href="/sign-in">
-              sign in
-            </Link>
-          </p>
-          <p>
-            To get your own user{" "}
-            <Link className="text-red-600" href="/sign-up">
-              sign up
-            </Link>{" "}
-            here
-          </p>
-        </>
-      )}
+      <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-800">
+        <TestAuth />
+      </main>
+      <>
+        {isSignedIn ? (
+          <>
+            <h1 className="text-4xl font-bold mb-6">Todo App</h1>
+            {encryptionKey && (
+              <AddTodoForm
+                encryptionKey={encryptionKey}
+                sessionToken={sessionToken}
+              />
+            )}
+            {/* Conditionally render AddTodoForm */}
+            <div className="mt-6 space-y-2">
+              {todos.map((todo, index) => (
+                <TodoItem key={index} todo={todo} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <p>
+              Please{" "}
+              <Link className="text-red-600" href="/sign-in">
+                sign in
+              </Link>
+            </p>
+            <p>
+              To get your own user{" "}
+              <Link className="text-red-600" href="/sign-up">
+                sign up
+              </Link>{" "}
+              here
+            </p>
+          </>
+        )}
+      </>
     </>
   );
 }
