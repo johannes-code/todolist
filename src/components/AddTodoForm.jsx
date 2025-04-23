@@ -1,24 +1,43 @@
 "use client";
 
 import { useState } from "react";
-// import { useAuth } from "@clerk/nextjs";
+import { useSession } from "@clerk/nextjs"; // Importer useSession
 import { encryptData } from "@/app/utils/encryptionUtils";
 
-export default function AddTodoForm({ encryptionKey, sessionToken }) {
+// Fjern sessionToken prop
+export default function AddTodoForm({ encryptionKey }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
-  // const { sessionToken } = useAuth();
+  const { session, isSignedIn } = useSession(); // Bruk useSession for å få tak i session
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Sjekk om brukeren er logget inn og sesjonen er klar
+    if (!isSignedIn || !session) {
+      console.error("Bruker ikke logget inn eller sesjon ikke klar.");
+      // Her kan du vise en feilmelding i UI
+      return;
+    }
+
     try {
       const encrypted = await encryptData(encryptionKey, text);
-      console.log("Session Token in handleSubmit:", sessionToken);
+
+      // Hent tokenet her, like før backend-kall
+      const sessionToken = await session.getToken();
+
+      if (!sessionToken) {
+        throw new Error("Kunne ikke hente autentiseringstoken for POST.");
+      }
+
+      console.log("Session Token i AddTodoForm handleSubmit:", sessionToken);
+
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `bearer ${sessionToken}`,
+          // Inkluder tokenet i Authorization headeren
+          Authorization: `Bearer ${sessionToken}`, // Standard format 'Bearer' + token
         },
         body: JSON.stringify({
           ciphertext: Array.from(new Uint8Array(encrypted.ciphertext)),
@@ -26,12 +45,20 @@ export default function AddTodoForm({ encryptionKey, sessionToken }) {
           priority: priority,
         }),
       });
-      if (res.ok) {
-        setText("");
-        window.location.reload();
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(
+          `Backend feil ved adding todo: ${res.status} ${res.statusText} - ${errorText}`
+        );
       }
+
+      // Oppdater UI eller last siden på nytt etter suksess
+      setText("");
+      window.location.reload();
     } catch (err) {
-      console.error(err);
+      console.error("Feil ved legging til todo:", err);
+      // Håndter feil i UI
     }
   };
 
