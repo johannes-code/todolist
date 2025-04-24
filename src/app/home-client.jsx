@@ -21,7 +21,7 @@ export default function TodoListComponent() {
   const { session, isSignedIn, userId } = useSession(); // useSession gir også userId
   const { user } = useUser(); // useUser kan gi mer brukerinfo om nødvendig
   const [encryptionKey, setEncryptionKey] = useState(null);
-  const [error, setError] = (useState < string) | (null > null); // Legg til state for feil
+  const [error, setError] = useState(null); // Legg til state for feil
 
   // Hjelpefunksjon for å hente token og inkludere i header (kan gjenbrukes)
   const fetchWithAuth = async (url, options = {}) => {
@@ -83,10 +83,10 @@ export default function TodoListComponent() {
       setTodos(data);
     } catch (error) {
       console.error("Error loading todos:", error);
-      // Sett feilmelding i state
+      // Sett feilmelding i state med korrekt syntaks
       setError(
         `Kunne ikke laste todos: ${
-          error instanceof Error ? error.message : String(error)
+          error instanceof Error ? error.message : String(error) // Bruk korrekt ternary her
         }`
       );
       setTodos([]); // Tøm liste ved feil
