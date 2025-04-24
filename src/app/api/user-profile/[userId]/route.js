@@ -19,8 +19,13 @@ export async function GET(request, { params }) {
 
     // Sjekk om den autentiserte brukerens ID matcher den forespurte ID-en
     if (authenticatedUserId !== requestedUserId) {
-      console.log(`API - GET /user-profile - Forbidden: User ${authenticatedUserId} tried to access profile ${requestedUserId}`);
-      return NextResponse.json({ error: "Forbidden - Cannot access other users' profiles" }, { status: 403 });
+      console.log(
+        `API - GET /user-profile - Forbidden: User ${authenticatedUserId} tried to access profile ${requestedUserId}`
+      );
+      return NextResponse.json(
+        { error: "Forbidden - Cannot access other users' profiles" },
+        { status: 403 }
+      );
     }
 
     // Koble til databasen først etter at autorisasjon er sjekket
@@ -41,30 +46,37 @@ export async function GET(request, { params }) {
     ) {
       // Sjekk om encryptedKey er et array og ikke tomt, siden du lagrer det som Array<number>
       if (Array.isArray(user.encryptedKey) && user.encryptedKey.length > 0) {
-          hasEcryptedKey = true;
-      } else if (user.encryptedKey instanceof Uint8Array && user.encryptedKey.byteLength > 0) {
-           // Om du lagrer det som Binary data, sjekk byteLength
-           hasEcryptedKey = true;
+        hasEcryptedKey = true;
+      } else if (
+        user.encryptedKey instanceof Uint8Array &&
+        user.encryptedKey.byteLength > 0
+      ) {
+        // Om du lagrer det som Binary data, sjekk byteLength
+        hasEcryptedKey = true;
       } else {
-           // Fallback sjekk for et generelt objekt
-           hasEcryptedKey = Object.keys(user.encryptedKey).length > 0;
+        // Fallback sjekk for et generelt objekt
+        hasEcryptedKey = Object.keys(user.encryptedKey).length > 0;
       }
     }
-     console.log("API - hasEcryptedKey:", hasEcryptedKey);
-
+    console.log("API - hasEcryptedKey:", hasEcryptedKey);
 
     // Returner hasEcryptedKey (og eventuelt encryptedKey HVIS forespørselen er fra den autentiserte brukeren)
     // Du kan vurdere å sende selve nøkkelen her også, men da MÅ den dekrypteres på frontend.
     // Basert på din initializeEncryptionKey funksjon i home-client.jsx, ser det ut til
     // at du forventer å hente nøkkelen her. La oss inkludere den, men VÆR SIKKER PÅ AT DEN ALDRI
     // SENDES TILBAKE TIL EN UAUTENTISERT ELLER FEIL BRUKER.
-     return NextResponse.json({ hasEcryptedKey, encryptedKey: user?.encryptedKey }, { status: 200 });
-
+    return NextResponse.json(
+      { hasEcryptedKey, encryptedKey: user?.encryptedKey },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error fetching user profile:", error);
     // Sjekk om feilen kom fra Clerk auth (f.eks. hvis tokenet var ugyldig selv om middleware ikke fanget det)
-    if ((error as any).statusCode === 401 || (error as any).statusCode === 403) {
-         return NextResponse.json({ error: error.message }, { status: (error as any).statusCode });
+    if (error.statusCode === 401 || error.statusCode === 403) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
     }
     return NextResponse.json(
       { error: "Failed to fetch user profile" },
