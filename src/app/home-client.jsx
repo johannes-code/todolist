@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useUser, useClerk } from "@clerk/nextjs";
+
 import AddTodoForm from "@/components/AddTodoForm.jsx";
 import TodoItem from "@/components/TodoItem";
-import { useSession, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import {
   generateEncryptionKey,
@@ -13,34 +14,33 @@ import {
 import { getAuthToken } from "@/app/utils/authUtils";
 
 export default function TodoListComponent() {
+  const { isLoaded: clerkLoaded } = useClerk();
+  const { isSignedIn, user, isLoaded: userLoaded } = useUser();
+
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { session, isSignedIn, userId } = useSession();
-  const { user } = useUser();
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [error, setError] = useState(null);
 
-  // Updated fetchWithAuth to use the getAuthToken utility
+  // Modified to be more resilient to clerkLoaded being undefined
+  const isFullyReady = userLoaded;
+  const isAuthenticated = isSignedIn && !!user?.id;
+  const userId = user?.id;
+
+  //
+
   const fetchWithAuth = async (url, options = {}) => {
-    if (!isSignedIn || !session) {
-      const authError = new Error(
-        "Bruker ikke logget inn eller sesjon ikke klar."
-      );
-      authError.statusCode = 401;
-      throw authError;
-    }
+    // Get fresh token each time
+    const token = await getAuthToken();
 
-    // Use the utility function instead of directly calling session.getToken()
-    const sessionToken = await getAuthToken(session);
-
-    if (!sessionToken) {
-      throw new Error("Kunne ikke hente autentiseringstoken.");
+    if (!token) {
+      throw new Error("No authentication token available");
     }
 
     const headers = {
       ...options.headers,
-      Authorization: `Bearer ${sessionToken}`,
       "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     };
 
     const response = await fetch(url, {
@@ -48,13 +48,13 @@ export default function TodoListComponent() {
       headers,
     });
 
+    console.log("Request to:", url, "with token:", token?.slice(0, 10));
+
     if (!response.ok) {
-      const errorText = await response.text();
-      const backendError = new Error(
-        `Backend feil: ${response.status} ${response.statusText} - ${errorText}`
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Request failed with status ${response.status}`
       );
-      backendError.statusCode = response.status;
-      throw backendError;
     }
 
     return response;
@@ -64,7 +64,7 @@ export default function TodoListComponent() {
     setLoading(true);
     setError(null);
 
-    if (!isSignedIn || !session) {
+    if (!isSignedIn) {
       setTodos([]);
       setLoading(false);
       return;
@@ -88,97 +88,60 @@ export default function TodoListComponent() {
   }
 
   async function initializeEncryptionKey() {
-    if (!isSignedIn || !session || !userId) {
-      console.log(
-        "Skipping key initialization: Not signed in, session not ready, or user ID missing."
-      );
-      return;
-    }
-    setError(null);
+    if (!isAuthenticated) return;
 
     try {
-      const userProfileResponse = await fetchWithAuth(
-        `/api/user-profile/${userId}`
-      );
-      const userProfileData = await userProfileResponse.json();
+      // Check if key exists
+      const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
+      const { hasEncryptedKey } = await profileRes.json();
 
-      if (!userProfileData.hasEncryptedKey) {
-        const newEncryptionKey = await generateEncryptionKey();
-        console.log("New encryption key generated:", newEncryptionKey);
+      if (!hasEncryptedKey) {
+        // Generate and store new key
+        const newKey = await generateEncryptionKey();
+        const exportedKey = await exportKey(newKey);
+        const keyBytes = Array.from(new Uint8Array(exportedKey));
 
-        const exportedKey = await exportKey(newEncryptionKey);
+        // Store the key
+        await fetchWithAuth("/api/store-encryption-key", {
+          method: "POST",
+          body: JSON.stringify({ exportedKey: keyBytes }),
+        });
 
-        const keyStoragePayload = {
-          userId: userId,
-          exportedKey: Array.from(new Uint8Array(exportedKey)),
-        };
-
-        const storeKeyResponse = await fetchWithAuth(
-          "/api/store-encryption-key",
-          {
-            method: "POST",
-            body: JSON.stringify(keyStoragePayload),
-          }
-        );
-
-        if (storeKeyResponse.ok) {
-          console.log("Encryption key generated and stored.");
-          setEncryptionKey(newEncryptionKey);
-        }
-      } else {
-        console.log("Encryption key already exists for this user.");
-        const userProfileResponseWithKey = await fetchWithAuth(
-          `/api/user-profile/${userId}`
-        );
-        const userProfileDataWithKey = await userProfileResponseWithKey.json();
-
-        if (userProfileDataWithKey && userProfileDataWithKey.encryptedKey) {
-          try {
-            const keyArrayBuffer = new Uint8Array(
-              userProfileDataWithKey.encryptedKey
-            ).buffer;
-            const importedKey = await importKey(keyArrayBuffer);
-            setEncryptionKey(importedKey);
-          } catch (error) {
-            console.error("Error importing existing key:", error);
-            setError(
-              `Feil ved import av nøkkel: ${
-                error instanceof Error ? error.message : String(error)
-              }`
-            );
-          }
-        } else {
-          console.error("User profile data or encryptedKey missing.");
-          setError("Kunne ikke hente krypteringsnøkkel fra profil.");
-        }
+        setEncryptionKey(newKey);
       }
     } catch (error) {
-      console.error("Error during key initialization:", error);
-      setError(
-        `Feil under nøkkelinitialisering: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      console.error("Key init error:", error);
+      setError("Failed to initialize encryption");
     }
   }
-
   useEffect(() => {
-    console.log("Effect running...");
-    console.log("Is Signed In:", isSignedIn);
-    console.log("Session Ready:", session != null);
+    console.log("Auth debug:", {
+      clerkLoaded,
+      userLoaded,
+      isSignedIn,
+      userId,
+      time: new Date().toISOString(),
+    });
 
-    if (isSignedIn && session) {
-      console.log("User is signed in and session is ready. Fetching data...");
+    if (!isFullyReady) {
+      console.log("Clerk still initializing");
+    }
+
+    if (isAuthenticated) {
+      console.log("User is fully authenticated.", userId);
       fetchTodos();
       initializeEncryptionKey();
-    } else if (!isSignedIn) {
-      console.log("User not signed in. Clearing data.");
+    } else {
+      console.log("User is not fully authenticated - clearing data");
       setTodos([]);
       setLoading(false);
-      setEncryptionKey(null);
-      setError(null);
     }
-  }, [userId, isSignedIn, session]);
+  }, [isFullyReady, isAuthenticated, userId]);
+
+  console.log("Auth status:", {
+    isSignedIn,
+    userId,
+  });
 
   if (loading) {
     return <div>Laster todos...</div>;
@@ -186,6 +149,10 @@ export default function TodoListComponent() {
 
   if (error) {
     return <div className="text-red-500">Det oppstod en feil: {error}</div>;
+  }
+
+  if (!isFullyReady) {
+    return <div className="text-yellow-500">Laster...</div>;
   }
 
   return (

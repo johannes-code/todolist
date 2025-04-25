@@ -1,21 +1,21 @@
 import Todo from "@/models/Todo";
 import { connectToDB } from "../../lib/db";
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
     await connectToDB();
     const { userId } = await auth();
 
-    
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized"}, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const todos = await Todo.find({ userId }).sort({ createdAt: -1 }).lean();
     return NextResponse.json(todos);
   } catch (error) {
+    console.error("API error details:", error);
     return NextResponse.json(
       { error: "Failed to fetch todos" },
       { status: 500 }
@@ -25,14 +25,22 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    await connectToDB();
-    
+    try {
+      await connectToDB();
+    } catch (dbError) {
+      console.error("Database connection failed:", dbError);
+      return NextResponse.json(
+        { error: "Database connection failed" },
+        { status: 500 }
+      );
+    }
+
     const { userId } = await auth();
-    
+
     const { text, priority } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized"}, {status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!text?.trim()) {
