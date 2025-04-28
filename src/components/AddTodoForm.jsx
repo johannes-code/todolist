@@ -48,8 +48,8 @@ export default function AddTodoForm({ encryptionKey }) {
           Authorization: `Bearer ${sessionToken}`, // Standard format 'Bearer' + token
         },
         body: JSON.stringify({
-          ciphertext: Array.from(new Uint8Array(encrypted.ciphertext)),
-          iv: Array.from(new Uint8Array(encrypted.iv)),
+          ciphertext: Buffer.from(new Uint8Array(encrypted.ciphertext)),
+          iv: Buffer.from(new Uint8Array(encrypted.iv)),
           priority: priority,
         }),
       });

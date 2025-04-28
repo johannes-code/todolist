@@ -1,3 +1,5 @@
+// api/store-encryption-key/route.js
+
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { connectToDB } from "@/app/lib/db";

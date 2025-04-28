@@ -46,17 +46,9 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!text?.trim()) {
-      // Better validation
-      return NextResponse.json(
-        { error: "Text must be a non-empty string" },
-        { status: 400 }
-      );
-    }
-
     const newTodo = await Todo.create({
-      ciphertext: ciphertext,
-      iv: iv,
+      ciphertext: Buffer.from(ciphertext, "base64"),
+      iv: Buffer.from(iv, "base64"),
       userId,
       priority,
     });
