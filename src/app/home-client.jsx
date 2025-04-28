@@ -10,6 +10,7 @@ import {
   generateEncryptionKey,
   exportKey,
   importKey,
+  decryptData,
 } from "@/app/utils/encryptionUtils";
 import { getAuthToken } from "@/app/utils/authUtils";
 
@@ -18,58 +19,42 @@ export default function TodoListComponent() {
   const { isSignedIn, user, isLoaded: userLoaded } = useUser();
 
   const [todos, setTodos] = useState([]);
+  const [decryptedTodos, setDecryptedTodos] = useState([]); // State for decrypted todos
   const [loading, setLoading] = useState(true);
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [error, setError] = useState(null);
 
-  // Modified to be more resilient to clerkLoaded being undefined
   const isFullyReady = userLoaded;
   const isAuthenticated = isSignedIn && !!user?.id;
   const userId = user?.id;
 
-  //
-
   const fetchWithAuth = async (url, options = {}) => {
-    // Get fresh token each time
     const token = await getAuthToken();
-
-    if (!token) {
-      throw new Error("No authentication token available");
-    }
-
+    if (!token) throw new Error("No authentication token available");
     const headers = {
       ...options.headers,
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
+    const response = await fetch(url, { ...options, headers });
     console.log("Request to:", url, "with token:", token?.slice(0, 10));
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(
         error.message || `Request failed with status ${response.status}`
       );
     }
-
     return response;
   };
 
   async function fetchTodos() {
     setLoading(true);
     setError(null);
-
     if (!isSignedIn) {
       setTodos([]);
       setLoading(false);
       return;
     }
-
     try {
       const response = await fetchWithAuth("/api/todos");
       const data = await response.json();
@@ -89,24 +74,17 @@ export default function TodoListComponent() {
 
   async function initializeEncryptionKey() {
     if (!isAuthenticated) return;
-
     try {
-      // Check if key exists
       const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
       const { hasEncryptedKey } = await profileRes.json();
-
       if (!hasEncryptedKey) {
-        // Generate and store new key
         const newKey = await generateEncryptionKey();
         const exportedKey = await exportKey(newKey);
         const keyBytes = Array.from(new Uint8Array(exportedKey));
-
-        // Store the key
         await fetchWithAuth("/api/store-encryption-key", {
           method: "POST",
           body: JSON.stringify({ exportedKey: keyBytes }),
         });
-
         setEncryptionKey(newKey);
       }
     } catch (error) {
@@ -114,6 +92,7 @@ export default function TodoListComponent() {
       setError("Failed to initialize encryption");
     }
   }
+
   useEffect(() => {
     console.log("Auth debug:", {
       clerkLoaded,
@@ -122,11 +101,7 @@ export default function TodoListComponent() {
       userId,
       time: new Date().toISOString(),
     });
-
-    if (!isFullyReady) {
-      console.log("Clerk still initializing");
-    }
-
+    if (!isFullyReady) console.log("Clerk still initializing");
     if (isAuthenticated) {
       console.log("User is fully authenticated.", userId);
       fetchTodos();
@@ -134,26 +109,54 @@ export default function TodoListComponent() {
     } else {
       console.log("User is not fully authenticated - clearing data");
       setTodos([]);
+      setDecryptedTodos([]); // Clear decrypted todos as well
       setLoading(false);
     }
   }, [isFullyReady, isAuthenticated, userId]);
 
-  console.log("Auth status:", {
-    isSignedIn,
-    userId,
-  });
+  useEffect(() => {
+    async function decryptAllTodos() {
+      if (encryptionKey && todos.length > 0) {
+        const decryptedData = await Promise.all(
+          todos.map(async (todo) => {
+            if (todo.ciphertext && todo.iv) {
+              try {
+                const ciphertext = new Uint8Array.from(
+                  Buffer.from(todo.ciphertext, "base64")
+                );
+                const ivBytes = new Uint8Array.from(
+                  Buffer.from(todo.iv, "base64")
+                );
+                const decryptedText = await decryptData(
+                  encryptionKey,
+                  ciphertext,
+                  ivBytes
+                );
+                return { ...todo, text: decryptedText };
+              } catch (error) {
+                console.error("Decryption error:", error);
+                return { ...todo, text: "[Error decrypting]" };
+              }
+            } else {
+              return { ...todo, text: "[Cannot decrypt]" };
+            }
+          })
+        );
+        setDecryptedTodos(decryptedData);
+      } else {
+        setDecryptedTodos([]);
+      }
+    }
 
-  if (loading) {
-    return <div>Laster todos...</div>;
-  }
+    decryptAllTodos();
+  }, [todos, encryptionKey]); // Re-run when todos or key changes
 
-  if (error) {
+  console.log("Auth status:", { isSignedIn, userId });
+
+  if (loading) return <div>Laster todos...</div>;
+  if (error)
     return <div className="text-red-500">Det oppstod en feil: {error}</div>;
-  }
-
-  if (!isFullyReady) {
-    return <div className="text-yellow-500">Laster...</div>;
-  }
+  if (!isFullyReady) return <div className="text-yellow-500">Laster...</div>;
 
   return (
     <>
@@ -177,12 +180,12 @@ export default function TodoListComponent() {
             )}
 
             <div className="mt-6 space-y-2">
-              {todos.length === 0 && !loading && !error && (
+              {decryptedTodos.length === 0 && !loading && !error && (
                 <p className="text-gray-400">
                   Ingen todos funnet. Legg til noen!
                 </p>
               )}
-              {todos.map((todo, index) => (
+              {decryptedTodos.map((todo, index) => (
                 <TodoItem key={todo._id || index} todo={todo} />
               ))}
             </div>
