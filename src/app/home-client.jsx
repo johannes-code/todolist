@@ -82,16 +82,25 @@ export default function TodoListComponent() {
     if (!isAuthenticated) return;
     try {
       const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
-      const { hasEncryptedKey } = await profileRes.json();
-      if (!hasEncryptedKey) {
+      const { hasEncryptedKey, encryptedKey: exportedKey } = await profileRes.json(); 
+  
+      if (hasEncryptedKey && exportedKey) {
+        // Key exists, import it
+        const keyBuffer = new Uint8Array(exportedKey);
+        const importedKey = await importKey(keyBuffer);
+        setEncryptionKey(importedKey);
+        console.log("Encryption key imported:", importedKey);
+      } else {
+        // No key exists, generate and store a new one
         const newKey = await generateEncryptionKey();
-        const exportedKey = await exportKey(newKey);
-        const keyBytes = Array.from(new Uint8Array(exportedKey));
+        const exportedNewKey = await exportKey(newKey);
+        const keyBytes = Array.from(new Uint8Array(exportedNewKey));
         await fetchWithAuth("/api/store-encryption-key", {
           method: "POST",
           body: JSON.stringify({ exportedKey: keyBytes }),
         });
         setEncryptionKey(newKey);
+        console.log("New encryption key generated and stored:", newKey);
       }
     } catch (error) {
       console.error("Key init error:", error);

@@ -30,7 +30,7 @@ export default function AddTodoForm({ encryptionKey }) {
 
     try {
       const encrypted = await encryptData(encryptionKey, text);
-
+      console.log("Encryption Key used for encrypt:", encryptionKey);
       // Hent tokenet her, like før backend-kall
       const sessionToken = await session.getToken();
 
@@ -48,8 +48,8 @@ export default function AddTodoForm({ encryptionKey }) {
           Authorization: `Bearer ${sessionToken}`, // Standard format 'Bearer' + token
         },
         body: JSON.stringify({
-          ciphertext: Buffer.from(new Uint8Array(encrypted.ciphertext)),
-          iv: Buffer.from(new Uint8Array(encrypted.iv)),
+          ciphertext: Buffer.from(encrypted.ciphertext).toString("base64"),
+          iv: Buffer.from(encrypted.iv).toString("base64"),
           priority: priority,
         }),
       });
