@@ -113,16 +113,12 @@ export default function TodoListComponent() {
 
           if (currentCiphertext && currentIv) {
             try {
-              const ciphertextBytes = Uint8Array.from(
-                Buffer.from(currentCiphertext, "base64")
-              );
-              const ivBytes = Uint8Array.from(Buffer.from(currentIv, "base64"));
-
               const decryptedText = await decryptData(
                 encryptionKey,
-                ciphertextBytes,
-                currentIv
+                currentIv,
+                currentCiphertext
               );
+             
               return { ...todo, text: decryptedText };
             } catch (error) {
               console.error("Decryption error:", error);

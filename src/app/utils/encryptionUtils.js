@@ -53,20 +53,27 @@ async function encryptData(key, data) {
     ciphertext: ciphertext,
   };
 }
-async function decryptData(key, iv, ciphertext) {
+async function decryptData(key, ivBase64, ciphertextBase64) {
   console.log("Decrypting with key:", key);
-  console.log("IV length:", iv ? iv.byteLength : 0);
-  console.log("Ciphertext length:", ciphertext ? ciphertext.byteLength : 0);
+  console.log("IV length (Base64):", ivBase64 ? ivBase64.length : 0);
+  console.log("Ciphertext length (Base64):", ciphertextBase64 ? ciphertextBase64.length : 0);
 
-  const ivBytes = new Uint8Array.from(Buffer.from(ivBase64, "ivBase64")); // Ensure iv is a Uint8Array
+  const ivBuffer = Buffer.from(ivBase64, "base64");
+
+  const ivBytes = new Uint8Array(ivBuffer);
   console.log("IV length (Bytes):", ivBytes.byteLength);
+  
+  const ciphertextBuffer = Buffer.from(ciphertextBase64,"base64");
+  const ciphertextBytes = new Uint8Array(ciphertextBuffer);
+  console.log("Ciphertext length (Bytes):", ciphertextBytes.byteLength);
+
   const decryptedData = await window.crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: iv,
+      iv: ivBytes,
     },
     key,
-    ciphertext
+    ciphertextBytes.buffer
   );
 
   return new TextDecoder().decode(decryptedData);
