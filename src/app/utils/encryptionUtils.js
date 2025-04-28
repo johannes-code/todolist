@@ -58,6 +58,8 @@ async function decryptData(key, iv, ciphertext) {
   console.log("IV length:", iv ? iv.byteLength : 0);
   console.log("Ciphertext length:", ciphertext ? ciphertext.byteLength : 0);
 
+  const ivBytes = new Uint8Array.from(Buffer.from(ivBase64, "ivBase64")); // Ensure iv is a Uint8Array
+  console.log("IV length (Bytes):", ivBytes.byteLength);
   const decryptedData = await window.crypto.subtle.decrypt(
     {
       name: "AES-GCM",

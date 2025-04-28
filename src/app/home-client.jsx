@@ -121,7 +121,7 @@ export default function TodoListComponent() {
               const decryptedText = await decryptData(
                 encryptionKey,
                 ciphertextBytes,
-                ivBytes
+                currentIv
               );
               return { ...todo, text: decryptedText };
             } catch (error) {
