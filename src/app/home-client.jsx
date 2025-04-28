@@ -1,3 +1,5 @@
+// src/app/home-client.jsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -59,6 +61,10 @@ export default function TodoListComponent() {
       const response = await fetchWithAuth("/api/todos");
       const data = await response.json();
       setTodos(data);
+      console.log(
+        "Todos state set with:",
+        data.map((t) => t.iv)
+      );
     } catch (error) {
       console.error("Error loading todos:", error);
       setError(
@@ -93,6 +99,46 @@ export default function TodoListComponent() {
     }
   }
 
+  async function decryptAllTodos() {
+    console.log(
+      "Decrypting todos with IVs:",
+      todos.map((t) => t.iv)
+    );
+
+    if (encryptionKey && todos.length > 0) {
+      const decryptedData = await Promise.all(
+        todos.map(async (todo) => {
+          const currentIv = todo.iv; // Explicitly get the iv here
+          const currentCiphertext = todo.ciphertext; // Explicitly get ciphertext
+
+          if (currentCiphertext && currentIv) {
+            try {
+              const ciphertextBytes = Uint8Array.from(
+                Buffer.from(currentCiphertext, "base64")
+              );
+              const ivBytes = Uint8Array.from(Buffer.from(currentIv, "base64"));
+
+              const decryptedText = await decryptData(
+                encryptionKey,
+                ciphertextBytes,
+                ivBytes
+              );
+              return { ...todo, text: decryptedText };
+            } catch (error) {
+              console.error("Decryption error:", error);
+              return { ...todo, text: "[Error decrypting]" };
+            }
+          } else {
+            return { ...todo, text: "[Cannot decrypt]" };
+          }
+        })
+      );
+      setDecryptedTodos(decryptedData);
+    } else {
+      setDecryptedTodos([]);
+    }
+  }
+
   useEffect(() => {
     console.log("Auth debug:", {
       clerkLoaded,
@@ -115,41 +161,8 @@ export default function TodoListComponent() {
   }, [isFullyReady, isAuthenticated, userId]);
 
   useEffect(() => {
-    async function decryptAllTodos() {
-      if (encryptionKey && todos.length > 0) {
-        const decryptedData = await Promise.all(
-          todos.map(async (todo) => {
-            if (todo.ciphertext && todo.iv) {
-              try {
-                const ciphertext = new Uint8Array.from(
-                  Buffer.from(todo.ciphertext, "base64")
-                );
-                const ivBytes = new Uint8Array.from(
-                  Buffer.from(todo.iv, "base64")
-                );
-                const decryptedText = await decryptData(
-                  encryptionKey,
-                  ciphertext,
-                  ivBytes
-                );
-                return { ...todo, text: decryptedText };
-              } catch (error) {
-                console.error("Decryption error:", error);
-                return { ...todo, text: "[Error decrypting]" };
-              }
-            } else {
-              return { ...todo, text: "[Cannot decrypt]" };
-            }
-          })
-        );
-        setDecryptedTodos(decryptedData);
-      } else {
-        setDecryptedTodos([]);
-      }
-    }
-
     decryptAllTodos();
-  }, [todos, encryptionKey]); // Re-run when todos or key changes
+  }, [todos, encryptionKey]);
 
   console.log("Auth status:", { isSignedIn, userId });
 

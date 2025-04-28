@@ -54,6 +54,10 @@ async function encryptData(key, data) {
   };
 }
 async function decryptData(key, iv, ciphertext) {
+  console.log("Decrypting with key:", key);
+  console.log("IV length:", iv ? iv.byteLength : 0);
+  console.log("Ciphertext length:", ciphertext ? ciphertext.byteLength : 0);
+
   const decryptedData = await window.crypto.subtle.decrypt(
     {
       name: "AES-GCM",
