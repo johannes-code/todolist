@@ -1,17 +1,25 @@
+// component/AddTodoForm.jsx
+
 "use client";
 
 import { useState } from "react";
 import { useSession } from "@clerk/nextjs"; // Importer useSession
 import { encryptData } from "@/app/utils/encryptionUtils";
 
-// Fjern sessionToken prop
 export default function AddTodoForm({ encryptionKey }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
-  const { session, isSignedIn } = useSession(); // Bruk useSession for å få tak i session
+  const { session, isSignedIn } = useSession();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (text.trim() === "") {
+      console.error("todo cant be empty");
+      return;
+      // Her kan du vise en feilmelding i UI
+      return;
+    }
 
     // Sjekk om brukeren er logget inn og sesjonen er klar
     if (!isSignedIn || !session) {

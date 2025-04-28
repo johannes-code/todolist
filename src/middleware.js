@@ -1,15 +1,11 @@
-// middleware.js (at project root) or src/middleware.js
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
 export default clerkMiddleware({
-  // Public routes that don't require authentication
-  publicRoutes: [
-    "/",
-    "/sign-in(.*)",
-    "/sign-up(.*)"
-  ]
+  publicRoutes: ["/", "/sign-in", "/sign-up", "/api/public(/*)"],
+  ignoredRoutes: ["/((?!api|trpc))(_next|.+..+)(.+)"],
+  debug: true,
 });
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ["/((?!.*\\..*|_next).*)", "/"],
 };

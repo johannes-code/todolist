@@ -1,5 +1,9 @@
+// utils/encryptionUtils.js
+// This module provides functions for generating, exporting, importing, encrypting, and decrypting data using the Web Crypto API.
+
 async function generateEncryptionKey() {
-  return await window.crypto.subtle.generateKey(
+  const key = await window.crypto.subtle.generateKey(
+    // Generate the key first
     {
       name: "AES-GCM",
       length: 256,
@@ -7,25 +11,26 @@ async function generateEncryptionKey() {
     true,
     ["encrypt", "decrypt"]
   );
-  console.log("Generated Key:", key);
-  return key;
+  // console.log("Generated Key:", key); // Log before returning
+  return key; // Then return
 }
 
 async function exportKey(key) {
-  const exported = await window.crypto.subtle.exportKey("raw", key);
-  console.log("Exported Key (Raw):", exported);
-  return exported;
+  const exported = await window.crypto.subtle.exportKey("raw", key); // Export first
+  // console.log("Exported Key (Raw):", exported); // Log before returning
+  return exported; // Then return
 }
 
-async function importKey(exportedKey) {
+async function importKey(exportedKeyRaw) {
+  // Assume input is ArrayBuffer/TypedArray
   return await window.crypto.subtle.importKey(
-    "jwk",
-    exportedKey,
+    "raw", // Import using "raw" to match exportKey
+    exportedKeyRaw,
     {
       name: "AES-GCM",
-      length: 256,
+      // length: 256, // Length is often inferred for 'raw' format
     },
-    true,
+    true, // Make key extractable if needed later
     ["encrypt", "decrypt"]
   );
 }

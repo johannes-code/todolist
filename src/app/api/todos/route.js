@@ -1,3 +1,5 @@
+// api/user-profile/[userId]/route.js
+
 import Todo from "@/models/Todo";
 import { connectToDB } from "../../lib/db";
 import { NextResponse } from "next/server";
@@ -37,7 +39,7 @@ export async function POST(request) {
 
     const { userId } = await auth();
 
-    const { text, priority } = await request.json();
+    const { ciphertext, iv, priority } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,7 +53,13 @@ export async function POST(request) {
       );
     }
 
-    const newTodo = await Todo.create({ text, userId, priority });
+    const newTodo = await Todo.create({
+      ciphertext: ciphertext,
+      iv: iv,
+      userId,
+      priority,
+    });
+
     return NextResponse.json(JSON.parse(JSON.stringify(newTodo)), {
       status: 201,
     });

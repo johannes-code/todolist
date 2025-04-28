@@ -1,4 +1,5 @@
 // app/utils/authUtils.js
+
 /**
  * Gets the authentication token from Clerk session with fallback methods
  * @param {Object} session - The Clerk session object
