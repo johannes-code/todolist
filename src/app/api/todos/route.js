@@ -1,13 +1,14 @@
-// api/user-profile/[userId]/route.js
+// api/todos/route.js
 
 import Todo from "@/models/Todo";
 import { connectToDB } from "../../lib/db";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-export async function GET() {
+export async function GET(request) {
   try {
     await connectToDB();
+
     const { userId } = await auth();
 
     if (!userId) {
