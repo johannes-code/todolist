@@ -1,29 +1,27 @@
-// src/app/home-client.jsx
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-
 import AddTodoForm from "@/components/AddTodoForm.jsx";
 import TodoItem from "@/components/TodoItem";
 import Link from "next/link";
 import {
-  generateEncryptionKey,
-  exportKey,
-  importKey,
+  encryptData,
   decryptData,
+  deriveEncryptionKey,
 } from "@/app/utils/encryptionUtils";
 import { getAuthToken } from "@/app/utils/authUtils";
+
+const ENCRYPTION_SALT = new TextEncoder().encode("your- ثابت-encryption-salt"); // Use a consistent salt
 
 export default function TodoListComponent() {
   const { isLoaded: clerkLoaded } = useClerk();
   const { isSignedIn, user, isLoaded: userLoaded } = useUser();
 
   const [todos, setTodos] = useState([]);
-  const [decryptedTodos, setDecryptedTodos] = useState([]); // State for decrypted todos
+  const [decryptedTodos, setDecryptedTodos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [encryptionKey, setEncryptionKey] = useState(null);
+  const [derivedEncryptionKey, setDerivedEncryptionKey] = useState(null);
   const [error, setError] = useState(null);
 
   const isFullyReady = userLoaded;
@@ -38,6 +36,7 @@ export default function TodoListComponent() {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
+    //!Feilmelding starter pga respons ikke ok
     const response = await fetch(url, { ...options, headers });
     console.log("Request to:", url, "with token:", token?.slice(0, 10));
     if (!response.ok) {
@@ -78,56 +77,71 @@ export default function TodoListComponent() {
     }
   }
 
+  const [isKdkGenerationInitiated, setIsKdkGenerationInitiated] =
+    useState(false);
+
   async function initializeEncryptionKey() {
     if (!isAuthenticated) return;
+    if (isKdkGenerationInitiated) return; // Prevent multiple triggers
+
     try {
       const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
-      const { hasEncryptedKey, encryptedKey: exportedKey } = await profileRes.json(); 
-  
-      if (hasEncryptedKey && exportedKey) {
-        // Key exists, import it
-        const keyBuffer = new Uint8Array(exportedKey);
-        const importedKey = await importKey(keyBuffer);
-        setEncryptionKey(importedKey);
-        console.log("Encryption key imported:", importedKey);
+      const { kdk: kdkBase64, kdkSalt: kdkSaltBase64 } =
+        await profileRes.json();
+
+      if (kdkBase64 && kdkSaltBase64) {
+        const kdk = Buffer.from(kdkBase64, "base64");
+        const kdkSalt = Buffer.from(kdkSaltBase64, "base64");
+
+        const derivedKey = await deriveEncryptionKey(
+          kdk.buffer,
+          ENCRYPTION_SALT
+        );
+        setDerivedEncryptionKey(derivedKey);
+        console.log("Encryption key derived successfully:", derivedKey);
       } else {
-        // No key exists, generate and store a new one
-        const newKey = await generateEncryptionKey();
-        const exportedNewKey = await exportKey(newKey);
-        const keyBytes = Array.from(new Uint8Array(exportedNewKey));
-        await fetchWithAuth("/api/store-encryption-key", {
-          method: "POST",
-          body: JSON.stringify({ exportedKey: keyBytes }),
-        });
-        setEncryptionKey(newKey);
-        console.log("New encryption key generated and stored:", newKey);
+        console.warn(
+          "KDK and salt not found for user. Triggering generation..."
+        );
+        setIsKdkGenerationInitiated(true); // Set the flag
+        try {
+          const kdkResponse = await fetchWithAuth("/api/kdk", {
+            method: "POST",
+          });
+          if (kdkResponse.ok) {
+            console.log("KDK generation triggered successfully.");
+            // Optionally, you can retry fetching the profile after a short delay
+            setTimeout(initializeEncryptionKey, 1000);
+          } else {
+            const errorData = await kdkResponse.json();
+            console.error("Failed to trigger KDK generation:", errorData);
+            setError("Failed to initialize encryption key.");
+          }
+        } catch (generationError) {
+          console.error("Error triggering KDK generation:", generationError);
+          setError("Failed to initialize encryption key.");
+        }
       }
     } catch (error) {
-      console.error("Key init error:", error);
-      setError("Failed to initialize encryption");
+      console.error("Key derivation error:", error);
+      setError("Failed to initialize encryption key.");
     }
   }
 
   async function decryptAllTodos() {
-    console.log(
-      "Decrypting todos with IVs:",
-      todos.map((t) => t.iv)
-    );
-
-    if (encryptionKey && todos.length > 0) {
+    if (derivedEncryptionKey && todos.length > 0) {
       const decryptedData = await Promise.all(
         todos.map(async (todo) => {
-          const currentIv = todo.iv; // Explicitly get the iv here
-          const currentCiphertext = todo.ciphertext; // Explicitly get ciphertext
+          const currentIv = todo.iv;
+          const currentCiphertext = todo.ciphertext;
 
           if (currentCiphertext && currentIv) {
             try {
               const decryptedText = await decryptData(
-                encryptionKey,
+                derivedEncryptionKey,
                 currentIv,
-                currentCiphertext
+                Buffer.from(currentCiphertext, "base64").buffer
               );
-             
               return { ...todo, text: decryptedText };
             } catch (error) {
               console.error("Decryption error:", error);
@@ -160,14 +174,14 @@ export default function TodoListComponent() {
     } else {
       console.log("User is not fully authenticated - clearing data");
       setTodos([]);
-      setDecryptedTodos([]); // Clear decrypted todos as well
+      setDecryptedTodos([]);
       setLoading(false);
     }
   }, [isFullyReady, isAuthenticated, userId]);
 
   useEffect(() => {
     decryptAllTodos();
-  }, [todos, encryptionKey]);
+  }, [todos, derivedEncryptionKey]);
 
   console.log("Auth status:", { isSignedIn, userId });
 
@@ -189,8 +203,8 @@ export default function TodoListComponent() {
                   }`
                 : ""}
             </h1>
-            {encryptionKey ? (
-              <AddTodoForm encryptionKey={encryptionKey} />
+            {derivedEncryptionKey ? (
+              <AddTodoForm encryptionKey={derivedEncryptionKey} />
             ) : (
               <p className="text-yellow-500">
                 Initialiserer krypteringsnøkkel...
