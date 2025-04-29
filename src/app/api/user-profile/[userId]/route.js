@@ -1,33 +1,43 @@
-// api/user-profile/[userId]/route.js
+// /pages/api/user-profile/[userId].js
 
-import Todo from "@/models/Todo";
-import { connectToDB } from "@/app/lib/db";
-import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { connectToDB } from "@/app/lib/db";
+import UserProfile from "@/models/UserProfile";
+import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
-  // Receive params as an argument
   try {
     await connectToDB();
-    // Await the params object to ensure it's fully resolved
-    const requestedUserId = await Promise.resolve(params.userId);
+    const { userId } = params;
+    const currentAuth = await auth();
 
-    if (!requestedUserId) {
-      return NextResponse.json({ error: "User ID not found" }, { status: 400 });
-    }
-
-    const { userId } = await auth();
-
-    if (!userId || userId !== requestedUserId) {
+    if (!currentAuth?.userId || currentAuth.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const todos = await Todo.find({ userId }).sort({ createdAt: -1 }).lean();
-    return NextResponse.json(todos);
+    const userProfile = await UserProfile.findOne({ userId }).lean();
+
+    if (!userProfile) {
+      return NextResponse.json(
+        { error: "User profile not found" },
+        { status: 404 }
+      );
+    }
+
+    // Include kdk and kdkSalt in the response
+    return NextResponse.json({
+      kdk: userProfile.kdk ? userProfile.kdk.toString("base64") : null,
+      kdkSalt: userProfile.kdkSalt
+        ? userProfile.kdkSalt.toString("base64")
+        : null,
+      // Include other profile data as needed
+      hasEncryptedKey: !!userProfile.kdk, // Update this based on KDK presence
+      // ... other profile fields ...
+    });
   } catch (error) {
-    console.error("API error details:", error);
+    console.error("Error fetching user profile:", error);
     return NextResponse.json(
-      { error: "Failed to fetch todos" },
+      { error: "Failed to fetch user profile" },
       { status: 500 }
     );
   }
