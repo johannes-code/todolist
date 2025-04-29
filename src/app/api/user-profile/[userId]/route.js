@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
   try {
-    await connectToDB();
     const { userId } = params;
     const currentAuth = await auth();
 
@@ -15,6 +14,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    await connectToDB(); // Connect at the beginning
     const userProfile = await UserProfile.findOne({ userId }).lean();
 
     if (!userProfile) {
@@ -24,14 +24,12 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Include kdk and kdkSalt in the response
     return NextResponse.json({
       kdk: userProfile.kdk ? userProfile.kdk.toString("base64") : null,
       kdkSalt: userProfile.kdkSalt
         ? userProfile.kdkSalt.toString("base64")
         : null,
-      // Include other profile data as needed
-      hasEncryptedKey: !!userProfile.kdk, // Update this based on KDK presence
+      hasEncryptedKey: !!userProfile.kdk,
       // ... other profile fields ...
     });
   } catch (error) {

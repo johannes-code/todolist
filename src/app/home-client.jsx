@@ -23,6 +23,10 @@ export default function TodoListComponent() {
   const [loading, setLoading] = useState(true);
   const [derivedEncryptionKey, setDerivedEncryptionKey] = useState(null);
   const [error, setError] = useState(null);
+  const [encryptionKeyInitialized, setEncryptionKeyInitialized] =
+    useState(false);
+  const [isKdkGenerationInitiated, setIsKdkGenerationInitiated] =
+    useState(false);
 
   const isFullyReady = userLoaded;
   const isAuthenticated = isSignedIn && !!user?.id;
@@ -77,50 +81,58 @@ export default function TodoListComponent() {
     }
   }
 
-  const [isKdkGenerationInitiated, setIsKdkGenerationInitiated] =
-    useState(false);
-
   async function initializeEncryptionKey() {
-    if (!isAuthenticated) return;
-    if (isKdkGenerationInitiated) return; // Prevent multiple triggers
+    if (!isAuthenticated || encryptionKeyInitialized) return;
+    if (isKdkGenerationInitiated) return;
 
     try {
       const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
-      const { kdk: kdkBase64, kdkSalt: kdkSaltBase64 } =
-        await profileRes.json();
+      const {
+        kdk: kdkBase64,
+        kdkSalt: kdkSaltBase64,
+        hasEncryptedKey,
+      } = await profileRes.json();
+      console.log("User profile data:", {
+        kdkBase64,
+        kdkSaltBase64,
+        hasEncryptedKey,
+      });
 
-      if (kdkBase64 && kdkSaltBase64) {
+      if (kdkBase64 && kdkSaltBase64 && hasEncryptedKey) {
         const kdk = Buffer.from(kdkBase64, "base64");
         const kdkSalt = Buffer.from(kdkSaltBase64, "base64");
-
         const derivedKey = await deriveEncryptionKey(
           kdk.buffer,
           ENCRYPTION_SALT
         );
         setDerivedEncryptionKey(derivedKey);
+        setEncryptionKeyInitialized(true);
         console.log("Encryption key derived successfully:", derivedKey);
-      } else {
-        console.warn(
-          "KDK and salt not found for user. Triggering generation..."
-        );
-        setIsKdkGenerationInitiated(true); // Set the flag
+      } else if (!hasEncryptedKey) {
+        console.warn("KDK not yet generated. Triggering generation...");
+        setIsKdkGenerationInitiated(true);
         try {
           const kdkResponse = await fetchWithAuth("/api/kdk", {
             method: "POST",
           });
           if (kdkResponse.ok) {
             console.log("KDK generation triggered successfully.");
-            // Optionally, you can retry fetching the profile after a short delay
-            setTimeout(initializeEncryptionKey, 1000);
+            // No immediate retry, rely on the useEffect hook on next render
           } else {
             const errorData = await kdkResponse.json();
             console.error("Failed to trigger KDK generation:", errorData);
             setError("Failed to initialize encryption key.");
+            setIsKdkGenerationInitiated(false);
           }
         } catch (generationError) {
           console.error("Error triggering KDK generation:", generationError);
           setError("Failed to initialize encryption key.");
+          setIsKdkGenerationInitiated(false);
         }
+      } else {
+        console.log(
+          "KDK and salt found, but hasEncryptedKey is false. This should ideally not happen."
+        );
       }
     } catch (error) {
       console.error("Key derivation error:", error);
@@ -167,17 +179,22 @@ export default function TodoListComponent() {
       time: new Date().toISOString(),
     });
     if (!isFullyReady) console.log("Clerk still initializing");
-    if (isAuthenticated) {
-      console.log("User is fully authenticated.", userId);
-      fetchTodos();
+    if (isAuthenticated && !encryptionKeyInitialized) {
+      console.log("User is fully authenticated. Initializing key...", userId);
       initializeEncryptionKey();
-    } else {
+      fetchTodos();
+    } else if (isAuthenticated && encryptionKeyInitialized) {
+      console.log("Encryption key is initialized. Fetching todos.");
+      fetchTodos();
+    } else if (!isAuthenticated) {
       console.log("User is not fully authenticated - clearing data");
       setTodos([]);
       setDecryptedTodos([]);
       setLoading(false);
+      setEncryptionKeyInitialized(false);
+      setDerivedEncryptionKey(null);
     }
-  }, [isFullyReady, isAuthenticated, userId]);
+  }, [isFullyReady, isAuthenticated, userId, encryptionKeyInitialized]);
 
   useEffect(() => {
     decryptAllTodos();
