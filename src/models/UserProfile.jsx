@@ -7,12 +7,13 @@ const UserProfileSchema = new mongoose.Schema({
     unique: true,
     index: true, // Add index for faster lookups
   },
-  hasEncryptedKey: {
-    type: Boolean,
-    default: false,
+  kdk: {
+    type: Buffer,
+    default: null,
   },
-  encryptedKey: {
-    type: Buffer, // Store raw key bytes as Buffer
+
+  kdkSalt: {
+    type: Buffer,
     default: null,
   },
   // Add any other profile fields you need
