@@ -4,6 +4,8 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import UserProfile from "@/models/UserProfile";
 import { connectToDB } from "@/app/lib/db";
+import 'tzdata;
+process.env.TZ = 'Europe/Oslo'; 
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
@@ -11,14 +13,21 @@ export async function POST(req) {
   console.log("Received webhook request");
 
   const payload = await req.json();
-  const headerList = headers();
-  const svixIdPromise = headerList.get("svix-id");
-  const svixTimestampPromise = headerList.get("svix-timestamp");
-  const svixSignaturePromise = headerList.get("svix-signature");
+  const headerList = await headers();
 
-  const svixId = await svixIdPromise;
-  const svixTimestamp = await svixTimestampPromise;
-  const svixSignature = await svixSignaturePromise;
+  let svixId = null;
+  let svixTimestamp = null;
+  let svixSignature = null;
+
+  for (const [key, value] of headerList.entries()) {
+    if (key === "svix-id") {
+      svixId = value;
+    } else if (key === "svix-timestamp") {
+      svixTimestamp = value;
+    } else if (key === "svix-signature") {
+      svixSignature = value;
+    }
+  }
 
   if (!svixId || !svixTimestamp || !svixSignature) {
     return new Response("Missing required svix headers", { status: 400 });
@@ -29,6 +38,7 @@ export async function POST(req) {
   let evt;
 
   try {
+    console.log("SVIX Headers:", { svixId, svixTimestamp, svixSignature }); // Log the headers
     evt = wh.verify(
       JSON.stringify(payload),
       {
@@ -41,7 +51,7 @@ export async function POST(req) {
     console.log("Webhook verified successfully:", evt);
   } catch (err) {
     console.error("Error verifying webhook:", err);
-    return new Response("Error occured -- SVIX verification failed", {
+    return new Response("Error occurred -- SVIX verification failed", {
       status: 400,
     });
   }
