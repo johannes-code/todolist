@@ -2,7 +2,7 @@
 
 import { Webhook } from "svix";
 import { headers } from "next/headers";
-import UserProfile from "@/app/models/userProfile";
+import UserProfile from "@/models/UserProfile";
 import { connectToDB } from "@/app/lib/db";
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
@@ -28,6 +28,7 @@ export async function POST(req) {
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
     });
+    console.log("Webhook verified successfully:", evt);
   } catch (err) {
     console.error("Error verifying webhook:", err);
     return new Response("Error occured -- SVIX verification failed", {
