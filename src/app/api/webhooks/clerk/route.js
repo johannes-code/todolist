@@ -4,8 +4,8 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import UserProfile from "@/models/UserProfile";
 import { connectToDB } from "@/app/lib/db";
-import 'tzdata;
-process.env.TZ = 'Europe/Oslo'; 
+import "tzdata";
+process.env.TZ = "Europe/Oslo";
 
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
