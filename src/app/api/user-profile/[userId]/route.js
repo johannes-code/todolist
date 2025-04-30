@@ -1,12 +1,14 @@
-// /pages/api/user-profile/[userId].js
+// /api/user-profile/[userId]/route.js
 
-import { auth } from "@clerk/nextjs/server";
-import { connectToDB } from "@/app/lib/db";
 import UserProfile from "@/models/UserProfile";
+import { connectToDB } from "@/app/lib/db";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(request, { params }) {
   try {
+    await connectToDB(); // Connect at the beginning
+
     const { userId } = params;
     const currentAuth = await auth();
 
@@ -14,7 +16,6 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectToDB(); // Connect at the beginning
     const userProfile = await UserProfile.findOne({ userId }).lean();
 
     if (!userProfile) {

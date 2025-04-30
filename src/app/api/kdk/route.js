@@ -16,10 +16,10 @@ export async function POST(request) {
     }
     const userId = user.id;
 
-    const salt = randomBytes(16);
+    const kdkSalt = randomBytes(16);
     const kdk = pbkdf2Sync(
       userId, // Use userId as password
-      salt,
+      kdkSalt,
       100000, // Iterations
       32, // Key length
       "sha256"
@@ -27,7 +27,7 @@ export async function POST(request) {
 
     const userProfile = await UserProfile.findOneAndUpdate(
       { userId },
-      { kdk, salt },
+      { kdk, salt: kdkSalt },
       { new: true, upsert: true }
     );
 
