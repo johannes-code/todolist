@@ -12,9 +12,13 @@ export async function POST(req) {
 
   const payload = await req.json();
   const headerList = headers();
-  const svixId = headerList.get("svix-id");
-  const svixTimestamp = headerList.get("svix-timestamp");
-  const svixSignature = headerList.get("svix-signature");
+  const svixIdPromise = headerList.get("svix-id");
+  const svixTimestampPromise = headerList.get("svix-timestamp");
+  const svixSignaturePromise = headerList.get("svix-signature");
+
+  const svixId = await svixIdPromise;
+  const svixTimestamp = await svixTimestampPromise;
+  const svixSignature = await svixSignaturePromise;
 
   if (!svixId || !svixTimestamp || !svixSignature) {
     return new Response("Missing required svix headers", { status: 400 });
@@ -25,11 +29,15 @@ export async function POST(req) {
   let evt;
 
   try {
-    evt = wh.verify(JSON.stringify(payload), {
-      "svix-id": svixId,
-      "svix-timestamp": svixTimestamp,
-      "svix-signature": svixSignature,
-    });
+    evt = wh.verify(
+      JSON.stringify(payload),
+      {
+        "svix-id": svixId,
+        "svix-timestamp": svixTimestamp,
+        "svix-signature": svixSignature,
+      },
+      { tolerance: 5 * 60 * 1000 }
+    );
     console.log("Webhook verified successfully:", evt);
   } catch (err) {
     console.error("Error verifying webhook:", err);
