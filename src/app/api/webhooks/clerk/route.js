@@ -8,11 +8,13 @@ import { connectToDB } from "@/app/lib/db";
 const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 
 export async function POST(req) {
+  console.log("Received webhook request");
+
   const payload = await req.json();
-  const header = headers();
-  const svixId = header.get("svix-id");
-  const svixTimestamp = header.get("svix-timestamp");
-  const svixSignature = header.get("svix-signature");
+  const headerList = headers();
+  const svixId = headerList.get("svix-id");
+  const svixTimestamp = headerList.get("svix-timestamp");
+  const svixSignature = headerList.get("svix-signature");
 
   if (!svixId || !svixTimestamp || !svixSignature) {
     return new Response("Missing required svix headers", { status: 400 });
