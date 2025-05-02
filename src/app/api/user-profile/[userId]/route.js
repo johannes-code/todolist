@@ -8,7 +8,7 @@ import crypto from "crypto";
 
 export async function GET(request, { params }) {
   try {
-    await connectToDB(); // Connect at the beginning
+    await connectToDB();
 
     const { userId } = await params;
     const currentAuth = await auth();
@@ -19,39 +19,32 @@ export async function GET(request, { params }) {
 
     let userProfile = await UserProfile.findOne({ userId }).lean();
 
-    //If not found create a new user profile
+    // If not found, create a new user profile with only kdkSalt and hasEncryptedKey: false
     if (!userProfile) {
-      console.log("User profile not found, creating a new one.");
+      console.log("User profile not found, creating a new one with kdkSalt.");
       const kdkSalt = crypto.randomBytes(16);
-      const kdk = crypto.pbkdf2Sync(
-        userId, // Use userId as password
+      const newUserProfile = new UserProfile({
+        userId,
         kdkSalt,
-        100000, // Iterations
-        32, // Key length
-        "sha256"
-      );
-      const newUserProfile = new UserProfile({ userId, kdk, kdkSalt });
+        hasEncryptedKey: false,
+      });
       await newUserProfile.save();
       userProfile = newUserProfile.toObject();
-      console.log("New user profile created:", newUserProfile);
+      console.log("New user profile created with kdkSalt:", newUserProfile);
     }
 
-    console.log(
-      "User profile kdk",
-      userProfile.kdk ? userProfile.kdk.toString("base64") : null
-    );
     console.log(
       "User profile kdkSalt",
       userProfile.kdkSalt ? userProfile.kdkSalt.toString("base64") : null
     );
-    console.log("User profile hasEncryptedKey", !!userProfile.kdk);
+    console.log("User profile hasEncryptedKey", userProfile.hasEncryptedKey);
 
     return NextResponse.json({
-      kdk: userProfile.kdk ? userProfile.kdk.toString("base64") : null,
+      kdk: null, // KDK will be derived in the browser
       kdkSalt: userProfile.kdkSalt
         ? userProfile.kdkSalt.toString("base64")
         : null,
-      hasEncryptedKey: !!userProfile.kdk,
+      hasEncryptedKey: userProfile.hasEncryptedKey,
       // ... other profile fields ...
     });
   } catch (error) {

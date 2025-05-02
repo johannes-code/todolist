@@ -42,9 +42,11 @@ export default function TodoListComponent() {
       Authorization: `Bearer ${token}`,
     };
 
+    const method = options.method || "GET";
+
     //!Feilmelding starter pga respons ikke ok
     const response = await fetch(url, {
-      method: "GET",
+      method: method,
       headers: headers,
     });
     console.log("Request to:", url, "with token:", token?.slice(0, 10));
@@ -99,7 +101,7 @@ export default function TodoListComponent() {
       console.log("Get profileRes:", profileRes);
 
       const {
-        kdk: kdkBase64,
+        kdk: kdkBase64, // You might not need this anymore if derivation is fully in browser
         kdkSalt: kdkSaltBase64,
         hasEncryptedKey,
       } = await profileRes.json();
@@ -109,16 +111,44 @@ export default function TodoListComponent() {
         hasEncryptedKey,
       });
 
-      if (kdkBase64 && kdkSaltBase64 && hasEncryptedKey) {
-        const kdk = Buffer.from(kdkBase64, "base64");
-        const kdkSalt = Buffer.from(kdkSaltBase64, "base64");
-        const derivedKey = await deriveEncryptionKey(
-          kdk.buffer,
-          ENCRYPTION_SALT
-        );
-        setDerivedEncryptionKey(derivedKey);
-        setEncryptionKeyInitialized(true);
-        console.log("Encryption key derived successfully:", derivedKey);
+      if (kdkSaltBase64 && hasEncryptedKey) {
+        const kdkSaltBytes = Buffer.from(kdkSaltBase64, "base64");
+        const encryptionSaltBytes = new TextEncoder().encode(ENCRYPTION_SALT);
+        const userIdBytes = new TextEncoder().encode(userId); // Using userId as secret for now
+
+        try {
+          // 1. Import the user's secret (userId for now) as a CryptoKey
+          const baseKey = await window.crypto.subtle.importKey(
+            "raw",
+            userIdBytes,
+            { name: "PBKDF2" }, // Algorithm name is needed for import
+            false,
+            ["deriveKey"]
+          );
+
+          // 2. Derive the encryption key using the imported base key and the salt
+          const derivedKey = await window.crypto.subtle.deriveKey(
+            {
+              name: "PBKDF2",
+              salt: kdkSaltBytes,
+              iterations: 100000,
+              hash: "SHA-256",
+            },
+            baseKey,
+            { name: "AES-GCM", length: 256 },
+            true,
+            ["encrypt", "decrypt"]
+          );
+
+          setDerivedEncryptionKey(derivedKey);
+          setEncryptionKeyInitialized(true);
+          console.log(
+            "Encryption key derived successfully using Web Crypto API."
+          );
+        } catch (error) {
+          console.error("Web Crypto API key derivation error:", error);
+          setError("Failed to initialize encryption key.");
+        }
       } else if (!hasEncryptedKey) {
         console.warn("KDK not yet generated. Triggering generation...");
         setIsKdkGenerationInitiated(true);
@@ -129,8 +159,7 @@ export default function TodoListComponent() {
           });
           if (kdkResponse.ok) {
             console.log("KDK generation triggered successfully.");
-            initializeEncryptionKey();
-            // No immediate retry, rely on the useEffect hook on next render
+            initializeEncryptionKey(); // Re-run to fetch profile with new KDK/salt
           } else {
             const errorData = await kdkResponse.json();
             console.error("Failed to trigger KDK generation:", errorData);
@@ -148,7 +177,7 @@ export default function TodoListComponent() {
         );
       }
     } catch (error) {
-      console.error("Key derivation error:", error);
+      console.error("Error fetching user profile:", error);
       setError("Failed to initialize encryption key.");
     }
   }
