@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
   try {
     await connectToDB(); // Connect at the beginning
 
-    const { userId } = params;
+    const { userId } = await params;
     const currentAuth = await auth();
 
     if (!currentAuth?.userId || currentAuth.userId !== userId) {
@@ -24,6 +24,9 @@ export async function GET(request, { params }) {
         { status: 404 }
       );
     }
+    console.log("User profile kdk", userProfile.kdk.toString("base64"));
+    console.log("User profile kdkSalt", userProfile.kdkSalt.toString("base64"));
+    console.log("User profile hasEncryptedKey", !!userProfile.kdk);
 
     return NextResponse.json({
       kdk: userProfile.kdk ? userProfile.kdk.toString("base64") : null,

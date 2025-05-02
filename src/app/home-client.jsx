@@ -34,15 +34,18 @@ export default function TodoListComponent() {
 
   const fetchWithAuth = async (url, options = {}) => {
     const token = await getAuthToken();
+
     if (!token) throw new Error("No authentication token available");
     const headers = {
-      ...options.headers,
+      ...options?.headers,
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
+
     //!Feilmelding starter pga respons ikke ok
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { headers });
     console.log("Request to:", url, "with token:", token?.slice(0, 10));
+    console.log("Isitvisible:", response);
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(
@@ -52,16 +55,17 @@ export default function TodoListComponent() {
     return response;
   };
 
-  async function fetchTodos() {
+  async function fetchTodos(userId) {
     setLoading(true);
     setError(null);
-    if (!isSignedIn) {
+    if (!isSignedIn || !userId) {
       setTodos([]);
       setLoading(false);
+
       return;
     }
     try {
-      const response = await fetchWithAuth("/api/todos");
+      const response = await fetchWithAuth(`/api/todos/${userId}`);
       const data = await response.json();
       setTodos(data);
       console.log(
@@ -82,7 +86,7 @@ export default function TodoListComponent() {
   }
 
   async function initializeEncryptionKey() {
-    if (!isAuthenticated || encryptionKeyInitialized) return;
+    if (!isAuthenticated || encryptionKeyInitialized || !userId) return;
     if (isKdkGenerationInitiated) return;
 
     try {
@@ -200,7 +204,7 @@ export default function TodoListComponent() {
     decryptAllTodos();
   }, [todos, derivedEncryptionKey]);
 
-  console.log("Auth status:", { isSignedIn, userId });
+  // console.log("Auth status:", { isSignedIn, userId });
 
   if (loading) return <div>Laster todos...</div>;
   if (error)

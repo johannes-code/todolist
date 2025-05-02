@@ -12,12 +12,21 @@ const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
 export async function POST(req) {
   console.log("Received webhook request");
 
+  if (!webhookSecret) {
+    console.error("Webhook secret is not set in environment variables.");
+    return new Response("Webhook secret is not set", { status: 500 });
+  }
+
   const payload = await req.json();
   const headerList = await headers();
 
-  let svixId = null;
-  let svixTimestamp = null;
-  let svixSignature = null;
+  const svixId = headersList.get("svix-id");
+  const svixTimestamp = headersList.get("svix-timestamp");
+  const svixSignature = headersList.get("svix-signature");
+
+  // console.log("Headers recieved:", {
+  //   svixId: svixId ?
+  // }
 
   for (const [key, value] of headerList.entries()) {
     if (key === "svix-id") {
