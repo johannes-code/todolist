@@ -103,17 +103,6 @@ export default function TodoListComponent() {
       });
       console.log("Get profileRes:", profileRes);
 
-      // const {
-      //   kdk: kdkBase64, // You might not need this anymore if derivation is fully in browser
-      //   kdkSalt: kdkSaltBase64,
-      //   hasEncryptedKey,
-      // } = await profileRes.json();
-      // console.log("User profile data:", {
-      //   kdkBase64,
-      //   kdkSaltBase64,
-      //   hasEncryptedKey,
-      // });
-
       if (kdkSaltBase64 && hasEncryptedKey) {
         const kdkSaltBytes = Buffer.from(kdkSaltBase64, "base64");
         const encryptionSaltBytes = new TextEncoder().encode(ENCRYPTION_SALT);
