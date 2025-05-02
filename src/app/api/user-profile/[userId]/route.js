@@ -4,6 +4,7 @@ import UserProfile from "@/models/UserProfile";
 import { connectToDB } from "@/app/lib/db";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import crypto from "crypto";
 
 export async function GET(request, { params }) {
   try {
@@ -16,16 +17,33 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userProfile = await UserProfile.findOne({ userId }).lean();
+    let userProfile = await UserProfile.findOne({ userId }).lean();
 
+    //If not found create a new user profile
     if (!userProfile) {
-      return NextResponse.json(
-        { error: "User profile not found" },
-        { status: 404 }
+      console.log("User profile not found, creating a new one.");
+      const kdkSalt = crypto.randomBytes(16);
+      const kdk = crypto.pbkdf2Sync(
+        userId, // Use userId as password
+        kdkSalt,
+        100000, // Iterations
+        32, // Key length
+        "sha256"
       );
+      const newUserProfile = new UserProfile({ userId, kdk, kdkSalt });
+      await newUserProfile.save();
+      userProfile = newUserProfile.toObject();
+      console.log("New user profile created:", newUserProfile);
     }
-    console.log("User profile kdk", userProfile.kdk.toString("base64"));
-    console.log("User profile kdkSalt", userProfile.kdkSalt.toString("base64"));
+
+    console.log(
+      "User profile kdk",
+      userProfile.kdk ? userProfile.kdk.toString("base64") : null
+    );
+    console.log(
+      "User profile kdkSalt",
+      userProfile.kdkSalt ? userProfile.kdkSalt.toString("base64") : null
+    );
     console.log("User profile hasEncryptedKey", !!userProfile.kdk);
 
     return NextResponse.json({

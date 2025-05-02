@@ -43,7 +43,10 @@ export default function TodoListComponent() {
     };
 
     //!Feilmelding starter pga respons ikke ok
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: headers,
+    });
     console.log("Request to:", url, "with token:", token?.slice(0, 10));
     console.log("Isitvisible:", response);
     if (!response.ok) {
@@ -61,7 +64,7 @@ export default function TodoListComponent() {
     if (!isSignedIn || !userId) {
       setTodos([]);
       setLoading(false);
-
+      setDecryptedTodos([]);
       return;
     }
     try {
@@ -90,7 +93,11 @@ export default function TodoListComponent() {
     if (isKdkGenerationInitiated) return;
 
     try {
-      const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
+      const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`, {
+        method: "GET",
+      });
+      console.log("Get profileRes:", profileRes);
+
       const {
         kdk: kdkBase64,
         kdkSalt: kdkSaltBase64,
@@ -115,12 +122,14 @@ export default function TodoListComponent() {
       } else if (!hasEncryptedKey) {
         console.warn("KDK not yet generated. Triggering generation...");
         setIsKdkGenerationInitiated(true);
+
         try {
           const kdkResponse = await fetchWithAuth("/api/kdk", {
             method: "POST",
           });
           if (kdkResponse.ok) {
             console.log("KDK generation triggered successfully.");
+            initializeEncryptionKey();
             // No immediate retry, rely on the useEffect hook on next render
           } else {
             const errorData = await kdkResponse.json();
