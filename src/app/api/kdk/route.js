@@ -20,7 +20,7 @@ export async function POST(request) {
 
     const userProfile = await UserProfile.findOneAndUpdate(
       { userId },
-      { kdkSalt, hasEncryptedKey: false },
+      { kdkSalt, hasEncryptedKey: true },
       { new: true, upsert: true }
     );
 
