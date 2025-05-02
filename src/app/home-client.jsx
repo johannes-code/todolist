@@ -110,7 +110,7 @@ export default function TodoListComponent() {
         kdkSalt: kdkSaltBase64,
         hasEncryptedKey,
       } = profileData;
-      
+
       if (kdkSaltBase64 && hasEncryptedKey) {
         const kdkSaltBytes = Buffer.from(kdkSaltBase64, "base64");
         const encryptionSaltBytes = new TextEncoder().encode(ENCRYPTION_SALT);
@@ -263,7 +263,8 @@ export default function TodoListComponent() {
                 : ""}
             </h1>
             {derivedEncryptionKey ? (
-              <AddTodoForm encryptionKey={derivedEncryptionKey} />
+              <AddTodoForm encryptionKey={derivedEncryptionKey}
+              onTodoAdded={fetchTodos} />
             ) : (
               <p className="text-yellow-500">
                 Initialiserer krypteringsnøkkel...

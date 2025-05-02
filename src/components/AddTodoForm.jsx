@@ -54,6 +54,11 @@ export default function AddTodoForm({ encryptionKey }) {
         }),
       });
 
+      if (res.ok) {
+        console.log("Todo created successfully")
+      }
+
+
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(
