@@ -94,22 +94,25 @@ export default function TodoListComponent() {
     if (!isAuthenticated || encryptionKeyInitialized || !userId) return;
     if (isKdkGenerationInitiated) return;
 
+    setIsKdkGenerationInitiated(true);
+    console.warn("KDK generation initiated. triggering generation...");
+
     try {
       const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`, {
         method: "GET",
       });
       console.log("Get profileRes:", profileRes);
 
-      const {
-        kdk: kdkBase64, // You might not need this anymore if derivation is fully in browser
-        kdkSalt: kdkSaltBase64,
-        hasEncryptedKey,
-      } = await profileRes.json();
-      console.log("User profile data:", {
-        kdkBase64,
-        kdkSaltBase64,
-        hasEncryptedKey,
-      });
+      // const {
+      //   kdk: kdkBase64, // You might not need this anymore if derivation is fully in browser
+      //   kdkSalt: kdkSaltBase64,
+      //   hasEncryptedKey,
+      // } = await profileRes.json();
+      // console.log("User profile data:", {
+      //   kdkBase64,
+      //   kdkSaltBase64,
+      //   hasEncryptedKey,
+      // });
 
       if (kdkSaltBase64 && hasEncryptedKey) {
         const kdkSaltBytes = Buffer.from(kdkSaltBase64, "base64");

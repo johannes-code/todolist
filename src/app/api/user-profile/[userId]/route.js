@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let userProfile = await UserProfile.findOne({ userId }).lean();
+    let userProfile = await UserProfile.findOne({ userId });
 
     // If not found, create a new user profile with only kdkSalt and hasEncryptedKey: false
     if (!userProfile) {

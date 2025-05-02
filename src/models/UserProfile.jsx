@@ -18,7 +18,7 @@ const UserProfileSchema = new mongoose.Schema(
       default: null,
     },
 
-    hasEncrytedKey: { type: Boolean, default: false },
+    hasEncryptedKey: { type: Boolean, default: false },
 
     // Add any other profile fields you need
     createdAt: { type: Date, default: Date.now },
@@ -26,12 +26,6 @@ const UserProfileSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Update timestamp on save
-UserProfileSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
-  next();
-});
 
 // Avoid creating model if it already exists (important for HMR)
 export default mongoose.models.UserProfile ||
