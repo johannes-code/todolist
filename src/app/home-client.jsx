@@ -70,7 +70,7 @@ export default function TodoListComponent() {
       return;
     }
     try {
-      const response = await fetchWithAuth(`/api/todos/${userId}`);
+      const response = await fetchWithAuth(`/api/todos`);
       const data = await response.json();
       setTodos(data);
       console.log(
@@ -183,9 +183,11 @@ export default function TodoListComponent() {
   }
 
   async function decryptAllTodos() {
+    console.log("decryptAllTodos called with todos:", todos, "and key", derivedEncryptionKey);
     if (derivedEncryptionKey && todos.length > 0) {
       const decryptedData = await Promise.all(
         todos.map(async (todo) => {
+          console.log("Attemptind to decrypt todo:", todo._id, "iv:", todo.iv);
           const currentIv = todo.iv;
           const currentCiphertext = todo.ciphertext;
 
@@ -196,9 +198,10 @@ export default function TodoListComponent() {
                 currentIv,
                 Buffer.from(currentCiphertext, "base64").buffer
               );
+              console.log("Decrypted text for", todo._id, ":", decryptedText);
               return { ...todo, text: decryptedText };
             } catch (error) {
-              console.error("Decryption error:", error);
+              console.error("Decryption error for:", todo._id, ":", error);
               return { ...todo, text: "[Error decrypting]" };
             }
           } else {
@@ -207,8 +210,10 @@ export default function TodoListComponent() {
         })
       );
       setDecryptedTodos(decryptedData);
+      console.log("Decrypted todos state set to:", decryptedData.map(t => t.text));
     } else {
       setDecryptedTodos([]);
+      console.log("No todos to decrypt or key not available.");
     }
   }
 
