@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import AddTodoForm from "@/components/AddTodoForm.jsx";
 import TodoItem from "@/components/TodoItem";
@@ -27,6 +27,7 @@ export default function TodoListComponent() {
     useState(false);
   const [isKdkGenerationInitiated, setIsKdkGenerationInitiated] =
     useState(false);
+  const [isFetchingTodos, setIsFetchingTodos] = useState(false);
 
   const isFullyReady = userLoaded;
   const isAuthenticated = isSignedIn && !!user?.id;
@@ -44,39 +45,42 @@ export default function TodoListComponent() {
 
     const method = options.method || "GET";
 
-    //!Feilmelding starter pga respons ikke ok
     const response = await fetch(url, {
       method: method,
       headers: headers,
+      body: options.body || null,
     });
+
     console.log("Request to:", url, "with token:", token?.slice(0, 10));
-    console.log("Isitvisible:", response);
+    console.log("Response:", response);
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error.message || `Request failed with status ${response.status}`
-      );
+      let errorMessage = `Request failed with status ${response.status}`;
+      try {
+        const error = await response.json();
+        errorMessage = error.message || errorMessage;
+      } catch (_) {
+        // Ignore JSON parsing errors
+      }
+      throw new Error(errorMessage);
     }
+
     return response;
   };
 
-  async function fetchTodos(userId) {
+  const fetchTodos = useCallback(async () => {
+    if (!isSignedIn || !userId || isFetchingTodos) return;
+
+    setIsFetchingTodos(true);
     setLoading(true);
     setError(null);
-    if (!isSignedIn || !userId) {
-      setTodos([]);
-      setLoading(false);
-      setDecryptedTodos([]);
-      return;
-    }
+
     try {
+      console.log("Fetching todos for user:", userId);
       const response = await fetchWithAuth(`/api/todos`);
       const data = await response.json();
+      console.log(`Retrieved ${data.length} todos from database`);
       setTodos(data);
-      console.log(
-        "Todos state set with:",
-        data.map((t) => t.iv)
-      );
     } catch (error) {
       console.error("Error loading todos:", error);
       setError(
@@ -87,21 +91,24 @@ export default function TodoListComponent() {
       setTodos([]);
     } finally {
       setLoading(false);
+      setIsFetchingTodos(false);
     }
-  }
+  }, [isSignedIn, userId, isFetchingTodos]);
 
-  async function initializeEncryptionKey() {
-    if (!isAuthenticated || encryptionKeyInitialized || !userId) return;
-    if (isKdkGenerationInitiated) return;
+  const initializeEncryptionKey = useCallback(async () => {
+    if (
+      !isAuthenticated ||
+      encryptionKeyInitialized ||
+      !userId ||
+      isKdkGenerationInitiated
+    )
+      return;
 
     setIsKdkGenerationInitiated(true);
-    console.warn("KDK generation initiated. triggering generation...");
+    console.log("KDK generation initiated. triggering generation...");
 
     try {
-      const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`, {
-        method: "GET",
-      });
-      console.log("Get profileRes:", profileRes);
+      const profileRes = await fetchWithAuth(`/api/user-profile/${userId}`);
       const profileData = await profileRes.json();
       console.log("Profile Data from API:", profileData);
 
@@ -113,7 +120,6 @@ export default function TodoListComponent() {
 
       if (kdkSaltBase64 && hasEncryptedKey) {
         const kdkSaltBytes = Buffer.from(kdkSaltBase64, "base64");
-        const encryptionSaltBytes = new TextEncoder().encode(ENCRYPTION_SALT);
         const userIdBytes = new TextEncoder().encode(userId); // Using userId as secret for now
 
         try {
@@ -121,7 +127,7 @@ export default function TodoListComponent() {
           const baseKey = await window.crypto.subtle.importKey(
             "raw",
             userIdBytes,
-            { name: "PBKDF2" }, // Algorithm name is needed for import
+            { name: "PBKDF2" },
             false,
             ["deriveKey"]
           );
@@ -145,13 +151,20 @@ export default function TodoListComponent() {
           console.log(
             "Encryption key derived successfully using Web Crypto API."
           );
+
+          // Now that we have the key, fetch todos if none exist yet
+          if (todos.length === 0) {
+            await fetchTodos();
+          }
+
+          return derivedKey;
         } catch (error) {
           console.error("Web Crypto API key derivation error:", error);
           setError("Failed to initialize encryption key.");
+          setIsKdkGenerationInitiated(false);
         }
       } else if (!hasEncryptedKey) {
         console.warn("KDK not yet generated. Triggering generation...");
-        setIsKdkGenerationInitiated(true);
 
         try {
           const kdkResponse = await fetchWithAuth("/api/kdk", {
@@ -159,7 +172,8 @@ export default function TodoListComponent() {
           });
           if (kdkResponse.ok) {
             console.log("KDK generation triggered successfully.");
-            initializeEncryptionKey(); // Re-run to fetch profile with new KDK/salt
+            setIsKdkGenerationInitiated(false); // Reset flag so we can try again
+            await initializeEncryptionKey(); // Re-run to fetch profile with new KDK/salt
           } else {
             const errorData = await kdkResponse.json();
             console.error("Failed to trigger KDK generation:", errorData);
@@ -175,21 +189,54 @@ export default function TodoListComponent() {
         console.log(
           "KDK and salt found, but hasEncryptedKey is false. This should ideally not happen."
         );
+        setIsKdkGenerationInitiated(false);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
       setError("Failed to initialize encryption key.");
+      setIsKdkGenerationInitiated(false);
     }
-  }
+  }, [
+    isAuthenticated,
+    encryptionKeyInitialized,
+    userId,
+    isKdkGenerationInitiated,
+    todos.length,
+    fetchTodos,
+  ]);
 
-  async function decryptAllTodos() {
-    console.log("decryptAllTodos called with todos:", todos, "and key", derivedEncryptionKey);
-    if (derivedEncryptionKey && todos.length > 0) {
+  const decryptAllTodos = useCallback(async () => {
+    console.log(
+      "decryptAllTodos called with todos:",
+      todos.length,
+      "and key available:",
+      Boolean(derivedEncryptionKey)
+    );
+
+    if (!derivedEncryptionKey || todos.length === 0) {
+      console.log("No todos to decrypt or key not available.");
+      setDecryptedTodos([]);
+      return;
+    }
+
+    try {
       const decryptedData = await Promise.all(
         todos.map(async (todo) => {
-          console.log("Attemptind to decrypt todo:", todo._id, "iv:", todo.iv);
-          const currentIv = todo.iv;
-          const currentCiphertext = todo.ciphertext;
+          // Extract the base64 strings correctly from MongoDB format
+          const currentIv =
+            todo.iv && todo.iv.$binary ? todo.iv.$binary.base64 : todo.iv;
+
+          const currentCiphertext =
+            todo.ciphertext && todo.ciphertext.$binary
+              ? todo.ciphertext.$binary.base64
+              : todo.ciphertext;
+
+          console.log(
+            "Attempting to decrypt todo:",
+            todo._id,
+            "iv:",
+            currentIv
+          );
 
           if (currentCiphertext && currentIv) {
             try {
@@ -198,25 +245,27 @@ export default function TodoListComponent() {
                 currentIv,
                 Buffer.from(currentCiphertext, "base64").buffer
               );
-              console.log("Decrypted text for", todo._id, ":", decryptedText);
+              console.log("Successfully decrypted todo:", todo._id);
               return { ...todo, text: decryptedText };
             } catch (error) {
               console.error("Decryption error for:", todo._id, ":", error);
               return { ...todo, text: "[Error decrypting]" };
             }
           } else {
-            return { ...todo, text: "[Cannot decrypt]" };
+            console.warn("Missing ciphertext or IV for todo:", todo._id);
+            return { ...todo, text: "[Cannot decrypt - missing data]" };
           }
         })
       );
-      setDecryptedTodos(decryptedData);
-      console.log("Decrypted todos state set to:", decryptedData.map(t => t.text));
-    } else {
-      setDecryptedTodos([]);
-      console.log("No todos to decrypt or key not available.");
-    }
-  }
 
+      console.log("All todos decrypted successfully:", decryptedData.length);
+      setDecryptedTodos(decryptedData);
+    } catch (err) {
+      console.error("Error during bulk decryption:", err);
+    }
+  }, [todos, derivedEncryptionKey]);
+
+  // Initial setup effect - runs once when component is ready
   useEffect(() => {
     console.log("Auth debug:", {
       clerkLoaded,
@@ -225,29 +274,50 @@ export default function TodoListComponent() {
       userId,
       time: new Date().toISOString(),
     });
-    if (!isFullyReady) console.log("Clerk still initializing");
-    if (isAuthenticated && !encryptionKeyInitialized) {
-      console.log("User is fully authenticated. Initializing key...", userId);
-      initializeEncryptionKey();
-      fetchTodos();
-    } else if (isAuthenticated && encryptionKeyInitialized) {
-      console.log("Encryption key is initialized. Fetching todos.");
-      fetchTodos();
-    } else if (!isAuthenticated) {
-      console.log("User is not fully authenticated - clearing data");
+
+    if (!isFullyReady) {
+      console.log("Clerk still initializing");
+      return;
+    }
+
+    if (isAuthenticated) {
+      // If authenticated but key not initialized, initialize it
+      if (!encryptionKeyInitialized) {
+        console.log("User is fully authenticated. Initializing key...", userId);
+        initializeEncryptionKey();
+      } else {
+        console.log("Encryption key is initialized. Fetching todos.");
+        fetchTodos();
+      }
+    } else {
+      console.log("User is not authenticated - clearing data");
       setTodos([]);
       setDecryptedTodos([]);
       setLoading(false);
       setEncryptionKeyInitialized(false);
       setDerivedEncryptionKey(null);
+      setIsKdkGenerationInitiated(false);
     }
-  }, [isFullyReady, isAuthenticated, userId, encryptionKeyInitialized]);
+  }, [
+    isFullyReady,
+    isAuthenticated,
+    userId,
+    encryptionKeyInitialized,
+    initializeEncryptionKey,
+    fetchTodos,
+  ]);
 
+  // Effect to decrypt todos when either todos or key changes
   useEffect(() => {
-    decryptAllTodos();
-  }, [todos, derivedEncryptionKey]);
+    if (todos.length > 0 && derivedEncryptionKey) {
+      decryptAllTodos();
+    }
+  }, [todos, derivedEncryptionKey, decryptAllTodos]);
 
-  // console.log("Auth status:", { isSignedIn, userId });
+  // Handle todo addition
+  const handleTodoAdded = useCallback(() => {
+    fetchTodos();
+  }, [fetchTodos]);
 
   if (loading) return <div>Laster todos...</div>;
   if (error)
@@ -268,8 +338,10 @@ export default function TodoListComponent() {
                 : ""}
             </h1>
             {derivedEncryptionKey ? (
-              <AddTodoForm encryptionKey={derivedEncryptionKey}
-              onTodoAdded={fetchTodos} />
+              <AddTodoForm
+                encryptionKey={derivedEncryptionKey}
+                onTodoAdded={handleTodoAdded}
+              />
             ) : (
               <p className="text-yellow-500">
                 Initialiserer krypteringsnøkkel...
