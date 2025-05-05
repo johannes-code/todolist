@@ -82,14 +82,10 @@ export default function TodoItem({ todo }) {
           onChange={toggleCompleted}
           className="h-5 w-5 flex-shrink-0"
         />
-<<<<<<< Updated upstream
-        <span className={completed ? "line-through text-gray-400" : ""}>
-=======
         <span
           className={completed ? "line-through text-gray-400 " : ""}
           style={{ minWidth: 0, overflowWrap: "break-word" }}
         >
->>>>>>> Stashed changes
           {todo.text}
         </span>
       </div>
