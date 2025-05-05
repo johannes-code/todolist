@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const HomeClient = dynamic(() => import('../app/home-client'), {
+const HomeClient = dynamic(() => import("../app/home-client"), {
   ssr: false,
 });
 

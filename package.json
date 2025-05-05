@@ -15,7 +15,9 @@
     "mongoose": "^8.13.1",
     "next": "^15.2.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "svix": "^1.64.1",
+    "tzdata": "^1.0.44"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

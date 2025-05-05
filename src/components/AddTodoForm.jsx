@@ -1,30 +1,77 @@
+// component/AddTodoForm.jsx
+
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useSession } from "@clerk/nextjs"; // Importer useSession
+import { encryptData } from "@/app/utils/encryptionUtils";
 
-export default function AddTodoForm() {
+export default function AddTodoForm({ encryptionKey }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
-  const { sessionToken } = useAuth();
+  const { session, isSignedIn } = useSession();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (text.trim() === "") {
+      console.error("todo cant be empty");
+      return;
+      // Her kan du vise en feilmelding i UI
+      return;
+    }
+
+    // Sjekk om brukeren er logget inn og sesjonen er klar
+    if (!isSignedIn || !session) {
+      console.error("Bruker ikke logget inn eller sesjon ikke klar.");
+      // Her kan du vise en feilmelding i UI
+      return;
+    }
+
     try {
+      const encrypted = await encryptData(encryptionKey, text);
+      console.log("Encryption Key used for encrypt:", encryptionKey);
+      // Hent tokenet her, like før backend-kall
+      const sessionToken = await session.getToken();
+
+      if (!sessionToken) {
+        throw new Error("Kunne ikke hente autentiseringstoken for POST.");
+      }
+
+      console.log("Session Token i AddTodoForm handleSubmit:", sessionToken);
+
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `bearer ${sessionToken}`,
+          // Inkluder tokenet i Authorization headeren
+          Authorization: `Bearer ${sessionToken}`, // Standard format 'Bearer' + token
         },
-        body: JSON.stringify({ text, priority }),
+        body: JSON.stringify({
+          ciphertext: Buffer.from(encrypted.ciphertext).toString("base64"),
+          iv: Buffer.from(encrypted.iv).toString("base64"),
+          priority: priority,
+        }),
       });
+
       if (res.ok) {
-        setText("");
-        window.location.reload();
+        console.log("Todo created successfully")
       }
+
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(
+          `Backend feil ved adding todo: ${res.status} ${res.statusText} - ${errorText}`
+        );
+      }
+
+      // Oppdater UI eller last siden på nytt etter suksess
+      setText("");
+      window.location.reload();
     } catch (err) {
-      console.error(err);
+      console.error("Feil ved legging til todo:", err);
+      // Håndter feil i UI
     }
   };
 
