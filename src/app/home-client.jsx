@@ -153,9 +153,9 @@ export default function TodoListComponent() {
           );
 
           // Now that we have the key, fetch todos if none exist yet
-          if (todos.length === 0) {
-            await fetchTodos();
-          }
+          // if (todos.length === 0) {
+          //   await fetchTodos();
+          // }
 
           return derivedKey;
         } catch (error) {
@@ -201,8 +201,8 @@ export default function TodoListComponent() {
     encryptionKeyInitialized,
     userId,
     isKdkGenerationInitiated,
-    todos.length,
-    fetchTodos,
+    // todos.length,
+    // fetchTodos,
   ]);
 
   const decryptAllTodos = useCallback(async () => {
@@ -272,6 +272,7 @@ export default function TodoListComponent() {
       userLoaded,
       isSignedIn,
       userId,
+      encryptionKeyInitialized,
       time: new Date().toISOString(),
     });
 
@@ -304,7 +305,6 @@ export default function TodoListComponent() {
     userId,
     encryptionKeyInitialized,
     initializeEncryptionKey,
-    fetchTodos,
   ]);
 
   // Effect to decrypt todos when either todos or key changes
