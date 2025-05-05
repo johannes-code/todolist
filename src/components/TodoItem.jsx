@@ -29,23 +29,36 @@ export default function TodoItem({ todo }) {
 
   return (
     <div className="flex items-center justify-between p-4 border-b">
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 flex-grow">
         <input
           type="checkbox"
           checked={completed}
           onChange={toggleCompleted}
-          className="h-5 w-5"
+          className="h-5 w-5 flex-shrink-0"
         />
+<<<<<<< Updated upstream
         <span className={completed ? "line-through text-gray-400" : ""}>
+=======
+        <span
+          className={completed ? "line-through text-gray-400 " : ""}
+          style={{ minWidth: 0, overflowWrap: "break-word" }}
+        >
+>>>>>>> Stashed changes
           {todo.text}
         </span>
       </div>
-      <div>
-        <span className="text-sm text-gray-500">Priority: {todo.priority}</span>
+      <div className="flex items-center space-x-4 flex-shrink-0">
+        <span className="text-sm text-gray-500 whitespace-nowrap">
+          Priority: {todo.priority}
+        </span>
+
+        <button
+          onClick={deleteTodo}
+          className=" border rounded p-2 text-red-500 hover:text-red-700 flex-shrink-0"
+        >
+          Delete
+        </button>
       </div>
-      <button onClick={deleteTodo} className="text-red-500 hover:text-red-700">
-        Delete
-      </button>
     </div>
   );
 }
