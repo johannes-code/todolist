@@ -45,13 +45,10 @@ export default function TodoItem({ todo }) {
       // Bruk fetchWithAuth
       const res = await fetchWithAuth(`api/todos/${todo._id}`, {
         method: "PUT",
-        // headers: { "Content-Type": "application/json" }, // Fjern, håndteres i fetchWithAuth
+
         body: JSON.stringify({ completed: !completed }),
       });
-      // Merk: Når du bruker fetchWithAuth, er response.ok allerede sjekket inni den funksjonen
-      // Hvis du får tilbake en data payload, kan du hente den her:
-      // const updatedTodo = await res.json();
-      // setCompleted(updatedTodo.completed); // Eller sett basert på det du sendte
+
       setCompleted(!completed); // Oppdater state basert på det du prøvde å sende
     } catch (err) {
       console.error("Feil ved oppdatering av todo:", err);
@@ -63,9 +60,7 @@ export default function TodoItem({ todo }) {
     try {
       // Bruk fetchWithAuth
       await fetchWithAuth(`/api/todos/${todo._id}`, { method: "DELETE" });
-      // Hvis sletting er vellykket, fjern elementet fra UI uten full side reload
-      // Dette krever at parent komponenten (TodoListComponent) har state for todos og en funksjon for å fjerne en todo
-      // For nå beholder vi reload for enkelthets skyld, men state-basert oppdatering er bedre UX.
+
       window.location.reload();
     } catch (err) {
       console.error("Feil ved sletting av todo:", err);
