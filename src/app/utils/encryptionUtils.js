@@ -11,7 +11,6 @@ async function generateEncryptionKey() {
     true,
     ["encrypt", "decrypt"]
   );
-  // console.log("Generated Key:", key); // Log before returning
   return key; // Then return
 }
 
