@@ -64,7 +64,7 @@ export async function encryptWithSession(key, sessionToken) {
         keyMaterial,
         { name: "AES-GCM", length: 256 },
         false,
-        ["wrapKey", "unwrapKey"]
+        ["encrypt", "decrypt"]
     );
     
     const exportedKey = await exportKey(key);
@@ -103,7 +103,7 @@ export async function decryptWithSession(encryptedKey, sessionToken) {
             keyMaterial,
             { name: "AES-GCM", length: 256 },
             false,
-            ["wrapKey", "unwrapKey"]
+            ["encrypt", "decrypt"]
         );
 
         const decrypted = await crypto.subtle.decrypt(
