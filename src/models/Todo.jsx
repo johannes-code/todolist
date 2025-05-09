@@ -1,12 +1,11 @@
 import { mongoose } from "mongoose";
 
 const todoSchema = new mongoose.Schema({
-  text: { type: String, required: true },
-  completed: { type: Boolean, default: false },
-  priority: {type: String, enum: ['High', 'Medium', 'Low'], default: 'Medium',},
-  userId: { type: String, required: true },
+  iv: { type: [Number], requred: true },
+  data: {type: [Number], required: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { strict: false });
+
 
 const Todo = mongoose.models.Todo || mongoose.model("Todo", todoSchema);
 
