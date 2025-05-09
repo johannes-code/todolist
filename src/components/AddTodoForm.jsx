@@ -10,21 +10,34 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [ isSubmitting, setIsSubmitting ] = useState(false);
-  const { sessionToken } = useAuth();
+  const [error, setError] = useState(null);
+  const { getToken } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+
     console.log("Form submitted!");
     console.log("current text", text);
     console.log("Encryption key exists:", !!encryptionKey);
+
     if (!text.trim() || !encryptionKey) return;
 
     setIsSubmitting(true);
 
     try {
+
+      const sessionToken = await getToken();
+
+      if (!sessionToken) {
+        console.error("No session token available");
+        return;
+      }
+
       const todoData = {
         text,
         priority,
+        completed: false,
         createdAt: new Date().toISOString()
       };
 
@@ -40,17 +53,29 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
         body: JSON.stringify({ encryptedTodo }),
       });
 
-      if (res.ok) {
+      if (!res.ok) {
+        let errorMessage = `Failed with status ${res.status}`;
+
+        try {
+          const errorData = await res.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e){
+          console.error("Could not parse error response:", e);
+        }
+        throw new Error(errorMessage);
+        }
+
         setText("");
         setPriority("Medium")
         onTodoAdded?.()
-      }else {
-        console.error("Failed to add todo:", await res.text());
-      }
-    }catch(err) {
-      console.error("Error adding todo", err);    
-    }finally {
-       setIsSubmitting(false);
+      
+      } catch (err) {
+        console.error("Error adding todo:", err);
+        setError(err.message || "Failed to add todo");
+      }finally {
+        setIsSubmitting(false);
       }
     };
 

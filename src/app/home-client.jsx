@@ -91,16 +91,33 @@ function TodoListComponent() {
     
     async function fetchTodos() {
       try {
-        if (!isSignedIn || !encryptionKey) {
+        if (!isSignedIn || !encryptionKey || !sessionToken) {
           if (mounted) setTodos([]);
           return;
         }
 
         setLoading(true);
-        const response = await fetch("/api/todos");
+        const response = await fetch("/api/todos", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${sessionToken}`
+          }
+        });
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          let errorMessage = `HTTP ${response.status}`;
+         
+          try {
+            const errorData = await response.json();
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (e) {
+            console.error("Could not parse error response:", e);
+          }
+
+          throw new Error(errorMessage);
         }
 
         const encryptedTodos = await response.json();
@@ -109,10 +126,18 @@ function TodoListComponent() {
         const decryptedTodos = await Promise.all(
           encryptedTodos.map(async (encryptedTodo) => {
             try {
+
+              const encryptedData = encryptedTodo.data || encryptedTodo.encryptedData;
+              if (!encryptedTodo.iv || !encryptedData) {
+                console.error("Todo missing required encryption fields:", encryptedTodo);
+                return null;
+              }
+
               const decrypted = await decryptData(encryptionKey, {
                 iv: encryptedTodo.iv,
                 data: encryptedTodo.data
               });
+
               return {
                 _id: encryptedTodo._id,
                 ...decrypted,
@@ -130,7 +155,7 @@ function TodoListComponent() {
         }
       } catch (error) {
         console.error("Todo fetch failed:", error);
-        if (mounted) setInitError("Failed to load todos");
+        if (mounted) setInitError("Failed to load todos " + error.message);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -141,7 +166,7 @@ function TodoListComponent() {
     return () => {
       mounted = false;
     };
-  }, [isSignedIn, encryptionKey, refreshKey]);
+  }, [isSignedIn, encryptionKey, refreshKey, sessionToken]);
 
   const handleAddTodo = async () => {
     setRefreshKey(Date.now()); // Trigger refresh

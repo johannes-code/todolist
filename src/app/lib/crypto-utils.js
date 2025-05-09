@@ -82,6 +82,12 @@ export async function encryptWithSession(key, sessionToken) {
     };
 }
 
+export async function clearStoredKeys() {
+    localStorage.removeItem('encrypdedKey');
+    console.log("Cleared stored encryption keys");
+    return true;
+}
+
 export async function decryptWithSession(encryptedKey, sessionToken) {
     try {
         const encoder = new TextEncoder();
@@ -118,6 +124,10 @@ export async function decryptWithSession(encryptedKey, sessionToken) {
         return await importKey(JSON.parse(new TextDecoder().decode(decrypted)));
     } catch (error) {
         console.error("Key decryption failed:", error);
+        if(error.name === "OperationError") {
+            console.log("This may be due to a change in key configuration. Clearing stored keys");
+            clearStoredKeys();
+        }
         throw error;
     }
 }
