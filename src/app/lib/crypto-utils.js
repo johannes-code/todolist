@@ -1,3 +1,5 @@
+// src/app/lib/crypto-utils
+
 export async function generateEncryptionKey() {
     return await window.crypto.subtle.generateKey(
         {
@@ -101,7 +103,7 @@ export async function decryptWithSession(encryptedKey, sessionToken) {
             keyMaterial,
             { name: "AES-GCM", length: 256 },
             false,
-            ["encrypt", "decrypt"]
+            ["wrapKey", "unwrapKey"]
         );
 
         const decrypted = await crypto.subtle.decrypt(

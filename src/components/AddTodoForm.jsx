@@ -1,10 +1,12 @@
+//src/components/AddTodoForm
+
 "use client";
 
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { encryptData } from "@/app/lib/crypto-utils";
 
-export default function AddTodoForm({ encryptionKey }) {
+export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
   const [text, setText] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [ isSubmitting, setIsSubmitting ] = useState(false);
@@ -12,6 +14,9 @@ export default function AddTodoForm({ encryptionKey }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form submitted!");
+    console.log("current text", text);
+    console.log("Encryption key exists:", !!encryptionKey);
     if (!text.trim() || !encryptionKey) return;
 
     setIsSubmitting(true);
@@ -24,7 +29,7 @@ export default function AddTodoForm({ encryptionKey }) {
       };
 
       const encryptedTodo = await encryptData(encryptionKey, todoData);
-
+      console.log("Encrypted todo:", encryptedTodo);
 
       const res = await fetch("/api/todos", {
         method: "POST",
@@ -37,14 +42,17 @@ export default function AddTodoForm({ encryptionKey }) {
 
       if (res.ok) {
         setText("");
-
+        setPriority("Medium")
+        onTodoAdded?.()
+      }else {
+        console.error("Failed to add todo:", await res.text());
       }
-    } catch (err) {
-      console.error("Encryption or submission failed" ,err);
-    } finally {
-      setIsSubmitting(false)
-    }
-  };
+    }catch(err) {
+      console.error("Error adding todo", err);    
+    }finally {
+       setIsSubmitting(false);
+      }
+    };
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
@@ -70,7 +78,7 @@ export default function AddTodoForm({ encryptionKey }) {
       disabled={isSubmitting || !text.trim()}
       >
         {isSubmitting ? "Adding..." : "Add" }
-        Add
+        
       </button>
     </form>
   );
