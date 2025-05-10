@@ -1,30 +1,23 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+// src/middelware.js
 
-const isApiRoute = createRouteMatcher(['/api(.*)']);
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isApiRoute(req)) {
-    await auth.protect(); // Try using auth.protect() for API routes
-  } else {
-    const publicRoutes = [/^\/$/, /^\/sign-up$/,/^\/sign-in$/ ];
-    const isPublicRoute = publicRoutes.some((route) => route.test(req.nextUrl.pathname));
-    if (!isPublicRoute) {
-      const user = auth.user;
-      if (!user) {
-        return NextResponse.redirect(new URL('/sign-in', req.url));
-      }
-    }
-  }
-  return NextResponse.next();
+export default clerkMiddleware({
+  publicRoutes: [
+    "/",
+    "/sign-in",
+    "/sign-up",
+    "/api/webhook/clerk",
+  ],
+
+  
+  // Optional: Enable debug mode to see more information
+  debug: process.env.NODE_ENV === 'development',
 });
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
-    '/',
-    '/sign-in',
-    '/sign-up',
+    "/((?!.*\\..*|_next).*)",
+    "/(api|trpc)(.*)",
   ],
 };
