@@ -4,12 +4,12 @@ import AddTodoForm from "@/components/AddTodoForm";
 import TodoItem from "@/components/TodoItem";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { 
-  generateEncryptionKey, 
-  encryptData, 
-  decryptData, 
-  encryptWithSession, 
-  decryptWithSession 
+import {
+  generateEncryptionKey,
+  encryptData,
+  decryptData,
+  encryptWithSession,
+  decryptWithSession,
 } from "./lib/crypto-utils";
 
 function TodoListComponent() {
@@ -42,27 +42,18 @@ function TodoListComponent() {
   // Key Initialization
   useEffect(() => {
     let mounted = true;
-    
+
     async function initializeKey() {
       try {
-        if (!isSignedIn || !sessionToken) {
-          console.log("Waiting for session token...");
+        if (!isSignedIn) {
+          console.log("Not signed in, skipping key initialization");
           return;
         }
-        
-        console.log("Initializing encryption key...");
-        const storedKey = localStorage.getItem('encryptedKey');
-        let key;
 
-        if (storedKey) {
-          console.log("Found existing encrypted key");
-          key = await decryptWithSession(JSON.parse(storedKey), sessionToken);
-        } else {
-          console.log("Generating new encryption key");
-          key = await generateEncryptionKey();
-          const encryptedKey = await encryptWithSession(key, sessionToken);
-          localStorage.setItem('encryptedKey', JSON.stringify(encryptedKey));
-        }
+        console.log("Initializing encryption key...");
+
+        // Option 1: Always use a fresh key per session (simplest)
+        const key = await generateEncryptionKey();
 
         if (mounted) {
           setEncryptionKey(key);
@@ -79,16 +70,16 @@ function TodoListComponent() {
     }
 
     initializeKey();
-    
+
     return () => {
       mounted = false;
     };
-  }, [isSignedIn, sessionToken]);
+  }, [isSignedIn]);
 
   // Todo Fetching
   useEffect(() => {
     let mounted = true;
-    
+
     async function fetchTodos() {
       try {
         if (!isSignedIn || !encryptionKey || !sessionToken) {
@@ -101,13 +92,13 @@ function TodoListComponent() {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${sessionToken}`
-          }
+            Authorization: `Bearer ${sessionToken}`,
+          },
         });
-        
+
         if (!response.ok) {
           let errorMessage = `HTTP ${response.status}`;
-         
+
           try {
             const errorData = await response.json();
             if (errorData && errorData.error) {
@@ -126,22 +117,25 @@ function TodoListComponent() {
         const decryptedTodos = await Promise.all(
           encryptedTodos.map(async (encryptedTodo) => {
             try {
-
-              const encryptedData = encryptedTodo.data || encryptedTodo.encryptedData;
+              const encryptedData =
+                encryptedTodo.data || encryptedTodo.encryptedData;
               if (!encryptedTodo.iv || !encryptedData) {
-                console.error("Todo missing required encryption fields:", encryptedTodo);
+                console.error(
+                  "Todo missing required encryption fields:",
+                  encryptedTodo
+                );
                 return null;
               }
 
               const decrypted = await decryptData(encryptionKey, {
                 iv: encryptedTodo.iv,
-                data: encryptedTodo.data
+                data: encryptedTodo.data,
               });
 
               return {
                 _id: encryptedTodo._id,
                 ...decrypted,
-                createdAt: encryptedTodo.createdAt
+                createdAt: encryptedTodo.createdAt,
               };
             } catch (error) {
               console.error("Failed to decrypt todo:", error);
@@ -162,7 +156,7 @@ function TodoListComponent() {
     }
 
     fetchTodos();
-    
+
     return () => {
       mounted = false;
     };
@@ -205,19 +199,16 @@ function TodoListComponent() {
 
   return (
     <>
-      <AddTodoForm 
-        encryptionKey={encryptionKey}
-        onTodoAdded={handleAddTodo} 
-      />
+      <AddTodoForm encryptionKey={encryptionKey} onTodoAdded={handleAddTodo} />
       <div className="mt-6 space-y-2">
         {loading ? (
           <div className="text-center py-4">Loading...</div>
         ) : todos.length === 0 ? (
-          <p className="text-center text-gray-500">No todos yet. Add one above!</p>
+          <p className="text-center text-gray-500">
+            No todos yet. Add one above!
+          </p>
         ) : (
-          todos.map((todo) => (
-            <TodoItem key={todo._id} todo={todo} />
-          ))
+          todos.map((todo) => <TodoItem key={todo._id} todo={todo} />)
         )}
       </div>
     </>

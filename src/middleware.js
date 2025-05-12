@@ -1,23 +1,13 @@
-// src/middelware.js
-
+// src/middleware.js
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
 export default clerkMiddleware({
-  publicRoutes: [
-    "/",
-    "/sign-in",
-    "/sign-up",
-    "/api/webhook/clerk",
-  ],
-
-  
-  // Optional: Enable debug mode to see more information
-  debug: process.env.NODE_ENV === 'development',
+  // Optional: Add debug logging
+  debug: true,
+  // Sign-in and sign-up are public by default
+  // All other routes are protected by default
 });
 
 export const config = {
-  matcher: [
-    "/((?!.*\\..*|_next).*)",
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
