@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { connectToDB } from "@/app/lib/db";
 import Todo from "@/models/Todo";
 import { getInternalUserId } from "@/app/lib/user-mapping";
+import { auth } from "@clerk/nextjs/server";
 
 async function getUserIdFromRequest() {
-  const headersList = headers();
+  const headersList = await headers();
 
   console.log("Headers available:", {
     hasAuthStatus: headersList.has("authStatus"),
@@ -88,78 +89,112 @@ export async function GET(request) {
   }
 }
 
-export async function POST(request) {
+export async function POST(req) {
   try {
     console.log("POST /api/todos called");
 
-    const clerkId = await getUserIdFromRequest();
+    // Get authentication using the modern auth() function
+    const { userId } = await auth();
+    console.log("Clerk userId:", userId);
 
-    if (!clerkId) {
-      console.error("No authenticated user");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    console.log(
-      "Authenticated with Clerk ID:",
-      clerkId.substring(0, 8) + "..."
-    );
-
-    await connectToDB();
-
-    const requestBody = await request.json();
-    console.log("Request body keys:", Object.keys(requestBody));
-
-    const encryptedTodo = requestBody.encryptedTodo || requestBody;
-
-    if (!encryptedTodo?.iv) {
-      return NextResponse.json(
-        { error: "Missing encryption IV" },
-        { status: 400 }
-      );
-    }
-
-    const todoData = encryptedTodo.encryptedData || encryptedTodo.data;
-    if (!todoData) {
-      return NextResponse.json(
-        { error: "Missing encrypted data" },
-        { status: 400 }
-      );
-    }
-
-    let internalUserId = await getInternalUserId(clerkId);
-
-    if (!internalUserId) {
-      console.log("Creating new user mapping");
-      internalUserId = await getInternalUserId(clerkId, {
-        createdAt: new Date(),
+    if (!userId) {
+      console.log("No authenticated user");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-    if (!internalUserId) {
-      return NextResponse.json(
-        { error: "Failed to create user" },
-        { status: 500 }
+    const body = await req.json();
+    console.log("Received body:", JSON.stringify(body));
+
+    const { todo } = body;
+    console.log("Todo object:", JSON.stringify(todo));
+
+    if (!todo || !todo.iv || !todo.encryptedData) {
+      console.log("Validation failed - missing properties");
+      return new Response(JSON.stringify({ error: "Invalid todo data" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Debug what connectToDB returns
+    const dbResult = await connectToDB();
+    console.log("connectToDB result type:", typeof dbResult);
+    console.log("connectToDB result keys:", Object.keys(dbResult || {}));
+    console.log("Is it a Mongoose connection?", dbResult?.constructor?.name);
+    console.log("Does it have .db method?", typeof dbResult?.db);
+    console.log("Does it have .database property?", dbResult?.database);
+    console.log("Does it have .client property?", dbResult?.client);
+
+    // Try different ways to get the collection
+    let todosCollection;
+
+    // If it's a MongoDB client with a database
+    if (dbResult?.db) {
+      const database = dbResult.db("your-database-name"); // Replace with your actual database name
+      todosCollection = database.collection("todos");
+    }
+    // If it's already a database
+    else if (dbResult?.collection) {
+      todosCollection = dbResult.collection("todos");
+    }
+    // If it's a Mongoose connection
+    else if (dbResult?.models) {
+      // For Mongoose, you'd need to use a model
+      return new Response(
+        JSON.stringify({
+          error:
+            "This appears to be a Mongoose connection. Please use a Todo model instead.",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } else {
+      throw new Error(
+        `Unknown database connection type: ${
+          dbResult?.constructor?.name || typeof dbResult
+        }`
       );
     }
 
-    console.log("Internal user ID:", internalUserId);
-
-    const newTodo = new Todo({
-      userId: internalUserId,
-      iv: encryptedTodo.iv,
-      data: todoData,
+    const newTodo = {
+      userId,
+      todo: {
+        iv: todo.iv,
+        encryptedData: todo.encryptedData,
+      },
+      completed: false,
       createdAt: new Date(),
-    });
+    };
 
-    await newTodo.save();
-    console.log("Created new todo:", newTodo._id);
+    console.log("Inserting new todo:", JSON.stringify(newTodo));
+    const result = await todosCollection.insertOne(newTodo);
 
-    return NextResponse.json(newTodo);
+    return new Response(
+      JSON.stringify({
+        id: result.insertedId.toString(),
+        ...newTodo,
+      }),
+      {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
-    console.error("Unexpected error in POST /api/todos:", error);
-    return NextResponse.json(
-      { error: "Internal server error", details: error.message },
-      { status: 500 }
+    console.error("Error in POST /api/todos:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Internal server error",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }

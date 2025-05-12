@@ -1,5 +1,7 @@
 // app/lib/user-mapping.js
 
+import User from "../../models/User";
+
 /**
  * Get or create the internal user ID based on the Clerk ID
  * @param {string} clerkId - The Clerk user ID
