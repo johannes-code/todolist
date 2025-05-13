@@ -4,13 +4,7 @@ import AddTodoForm from "@/components/AddTodoForm";
 import TodoItem from "@/components/TodoItem";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import {
-  generateEncryptionKey,
-  encryptData,
-  decryptData,
-  encryptWithSession,
-  decryptWithSession,
-} from "./lib/crypto-utils";
+import { generateEncryptionKey, decryptData } from "./lib/crypto-utils";
 
 function TodoListComponent() {
   const [todos, setTodos] = useState([]);
@@ -20,24 +14,6 @@ function TodoListComponent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [initError, setInitError] = useState(null);
   const { isSignedIn, getToken } = useAuth();
-  const [sessionToken, setSessionToken] = useState(null);
-
-  // Get session token
-  useEffect(() => {
-    async function fetchToken() {
-      if (isSignedIn) {
-        try {
-          const token = await getToken();
-          console.log("Retrieved session token:", !!token);
-          setSessionToken(token);
-        } catch (err) {
-          console.error("Failed to get token:", err);
-          setInitError("Failed to get session token");
-        }
-      }
-    }
-    fetchToken();
-  }, [isSignedIn, getToken]);
 
   // Key Initialization
   useEffect(() => {
@@ -52,7 +28,7 @@ function TodoListComponent() {
 
         console.log("Initializing encryption key...");
 
-        // Option 1: Always use a fresh key per session (simplest)
+        // Always use a fresh key per session
         const key = await generateEncryptionKey();
 
         if (mounted) {
@@ -82,17 +58,22 @@ function TodoListComponent() {
 
     async function fetchTodos() {
       try {
-        if (!isSignedIn || !encryptionKey || !sessionToken) {
+        if (!isSignedIn || !encryptionKey) {
           if (mounted) setTodos([]);
           return;
         }
 
         setLoading(true);
+
+        // Get fresh token for the request
+        const token = await getToken();
+        console.log("Using token for fetch:", !!token);
+
         const response = await fetch("/api/todos", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionToken}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -113,13 +94,24 @@ function TodoListComponent() {
 
         const encryptedTodos = await response.json();
         console.log("Received todos:", encryptedTodos.length);
+        console.log(
+          "First todo raw:",
+          JSON.stringify(encryptedTodos[0], null, 2)
+        );
 
         const decryptedTodos = await Promise.all(
           encryptedTodos.map(async (encryptedTodo) => {
             try {
-              const encryptedData =
-                encryptedTodo.data || encryptedTodo.encryptedData;
-              if (!encryptedTodo.iv || !encryptedData) {
+              // Debug: log what we're trying to decrypt
+              console.log("Attempting to decrypt:", {
+                hasIv: !!encryptedTodo.iv,
+                hasEncryptedData: !!encryptedTodo.encryptedData,
+                hasData: !!encryptedTodo.data,
+                fields: Object.keys(encryptedTodo),
+              });
+
+              // The API now returns 'encryptedData' directly
+              if (!encryptedTodo.iv || !encryptedTodo.encryptedData) {
                 console.error(
                   "Todo missing required encryption fields:",
                   encryptedTodo
@@ -129,7 +121,7 @@ function TodoListComponent() {
 
               const decrypted = await decryptData(encryptionKey, {
                 iv: encryptedTodo.iv,
-                data: encryptedTodo.data,
+                data: encryptedTodo.encryptedData,
               });
 
               return {
@@ -139,6 +131,7 @@ function TodoListComponent() {
               };
             } catch (error) {
               console.error("Failed to decrypt todo:", error);
+              console.error("Problematic todo:", encryptedTodo);
               return null;
             }
           })
@@ -149,7 +142,7 @@ function TodoListComponent() {
         }
       } catch (error) {
         console.error("Todo fetch failed:", error);
-        if (mounted) setInitError("Failed to load todos " + error.message);
+        if (mounted) setInitError("Failed to load todos: " + error.message);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -160,7 +153,7 @@ function TodoListComponent() {
     return () => {
       mounted = false;
     };
-  }, [isSignedIn, encryptionKey, refreshKey, sessionToken]);
+  }, [isSignedIn, encryptionKey, refreshKey, getToken]);
 
   const handleAddTodo = async () => {
     setRefreshKey(Date.now()); // Trigger refresh

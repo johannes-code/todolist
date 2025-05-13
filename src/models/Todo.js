@@ -2,8 +2,7 @@ import { mongoose } from "mongoose";
 
 const todoSchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
     index: true,
   },
@@ -13,14 +12,13 @@ const todoSchema = new mongoose.Schema({
   },
   data: {
     type: [Number],
-    required: true, 
+    required: true,
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
-
 
 const Todo = mongoose.models.Todo || mongoose.model("Todo", todoSchema);
 
