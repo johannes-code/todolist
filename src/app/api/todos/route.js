@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { connectToDB } from "@/app/lib/db";
 import Todo from "@/models/Todo";
 import { auth } from "@clerk/nextjs/server";
+import { hashUserIdToHex } from "@/app/lib/crypto-utils";
 
 export async function GET(request) {
   try {
     console.log("GET /api/todos called");
 
-    // Get authentication
     const { userId } = await auth();
 
     if (!userId) {
@@ -18,43 +18,39 @@ export async function GET(request) {
 
     console.log("Authenticated with Clerk ID:", userId.substring(0, 8) + "...");
 
+    const userIdHash = await hashUserIdToHex(userId);
+
     await connectToDB();
     console.log("Database connected");
 
-    const todos = await Todo.find({ userId }).sort({
+    const todos = await Todo.find({ userIdHash }).sort({
       createdAt: -1,
     });
     console.log("Found todos:", todos.length);
 
-    // Debug: log raw todo structure
-    if (todos.length > 0) {
-      console.log(
-        "Sample todo structure:",
-        JSON.stringify(todos[0].toObject(), null, 2)
-      );
-    }
-
     const formattedTodos = todos.map((todo) => {
       const todoObj = todo.toObject();
 
-      if (!todoObj.data && !todoObj.encryptedData) {
-        console.error("Todo missing encrypted data:", todoObj);
+      if (!todoObj.data || todoObj.data.length === 0) {
+        console.error("Todo has empty or missing data:", {
+          id: todoObj._id,
+          dataLength: todoObj.data ? todoObj.data.length : "missing",
+        });
         return null;
       }
 
       return {
         _id: todoObj._id,
-        userId: todoObj.userId,
+        userId: userId,
         iv: todoObj.iv,
-        encryptedData: todoObj.data || todoObj.encryptedData,
+        encryptedData: todoObj.data,
         createdAt: todoObj.createdAt,
       };
     });
 
     const validTodos = formattedTodos.filter(Boolean);
     console.log(
-      "Formatted todo example:",
-      JSON.stringify(validTodos[0], null, 2)
+      `Returning ${validTodos.length} valid todos out of ${todos.length} total`
     );
 
     return NextResponse.json(validTodos);
@@ -71,7 +67,6 @@ export async function POST(req) {
   try {
     console.log("POST /api/todos called");
 
-    // Get authentication
     const { userId } = await auth();
     console.log("Clerk userId:", userId);
 
@@ -88,10 +83,11 @@ export async function POST(req) {
     const body = await req.json();
     console.log("Received body:", JSON.stringify(body));
 
-    const { todo } = body;
+    const { todo, userIdHash } = body;
     console.log("Todo object:", JSON.stringify(todo));
+    console.log("Received userIdHash:", userIdHash);
 
-    if (!todo || !todo.iv || !todo.encryptedData) {
+    if (!todo || !todo.iv || !todo.encryptedData || !userIdHash) {
       console.log("Validation failed - missing properties");
       return NextResponse.json(
         { error: "Invalid todo data" },
@@ -101,26 +97,41 @@ export async function POST(req) {
       );
     }
 
+    const expectedHash = await hashUserIdToHex(userId);
+    if (userIdHash !== expectedHash) {
+      console.error("User ID hash mismatch");
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        {
+          status: 403,
+        }
+      );
+    }
+
     await connectToDB();
     console.log("Database connected");
 
     const newTodo = new Todo({
-      userId,
+      userIdHash,
       iv: todo.iv,
       data: todo.encryptedData,
       createdAt: new Date(),
     });
 
-    console.log("Creating new todo...");
+    console.log(
+      "Creating new todo with data length:",
+      todo.encryptedData.length
+    );
     const savedTodo = await newTodo.save();
     console.log("Todo saved with ID:", savedTodo._id);
+    console.log("Saved todo data length:", savedTodo.data.length);
 
     return NextResponse.json(
       {
         _id: savedTodo._id.toString(),
-        userId: savedTodo.userId,
+        userId: userId,
         iv: savedTodo.iv,
-        data: savedTodo.data,
+        encryptedData: savedTodo.data,
         createdAt: savedTodo.createdAt,
       },
       {
@@ -137,6 +148,37 @@ export async function POST(req) {
       {
         status: 500,
       }
+    );
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    console.log("DELETE /api/todos called");
+
+    const { userId } = await auth();
+
+    if (!userId) {
+      console.error("No authenticated user");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userIdHash = await hashUserIdToHex(userId);
+
+    await connectToDB();
+
+    const result = await Todo.deleteMany({ userIdHash });
+    console.log(`Deleted ${result.deletedCount} todos for user ${userId}`);
+
+    return NextResponse.json({
+      message: "All todos cleared",
+      count: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("Error clearing todos:", error);
+    return NextResponse.json(
+      { error: "Internal server error", details: error.message },
+      { status: 500 }
     );
   }
 }

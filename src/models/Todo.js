@@ -1,7 +1,7 @@
 import { mongoose } from "mongoose";
 
 const todoSchema = new mongoose.Schema({
-  userId: {
+  userIdHash: {
     type: String,
     required: true,
     index: true,
