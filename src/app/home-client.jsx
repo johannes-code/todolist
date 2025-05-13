@@ -4,7 +4,11 @@ import AddTodoForm from "@/components/AddTodoForm";
 import TodoItem from "@/components/TodoItem";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { generateEncryptionKey, decryptData } from "./lib/crypto-utils";
+import {
+  deriveKeyFromUserId,
+  encryptData,
+  decryptData,
+} from "./lib/crypto-utils";
 
 function TodoListComponent() {
   const [todos, setTodos] = useState([]);
@@ -13,7 +17,7 @@ function TodoListComponent() {
   const [keyInitialized, setKeyInitialized] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [initError, setInitError] = useState(null);
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, getToken, userId } = useAuth();
 
   // Key Initialization
   useEffect(() => {
@@ -21,20 +25,22 @@ function TodoListComponent() {
 
     async function initializeKey() {
       try {
-        if (!isSignedIn) {
-          console.log("Not signed in, skipping key initialization");
+        if (!isSignedIn || !userId) {
+          console.log(
+            "Not signed in or no user ID, skipping key initialization"
+          );
           return;
         }
 
-        console.log("Initializing encryption key...");
+        console.log("Initializing encryption key for user:", userId);
 
-        // Always use a fresh key per session
-        const key = await generateEncryptionKey();
+        // Derive a consistent key from the user ID
+        const key = await deriveKeyFromUserId(userId);
 
         if (mounted) {
           setEncryptionKey(key);
           setKeyInitialized(true);
-          console.log("Key initialized successfully:", !!key);
+          console.log("Key initialized successfully");
         }
       } catch (error) {
         console.error("Key initialization failed:", error);
@@ -50,7 +56,7 @@ function TodoListComponent() {
     return () => {
       mounted = false;
     };
-  }, [isSignedIn]);
+  }, [isSignedIn, userId]);
 
   // Todo Fetching
   useEffect(() => {
@@ -102,14 +108,6 @@ function TodoListComponent() {
         const decryptedTodos = await Promise.all(
           encryptedTodos.map(async (encryptedTodo) => {
             try {
-              // Debug: log what we're trying to decrypt
-              console.log("Attempting to decrypt:", {
-                hasIv: !!encryptedTodo.iv,
-                hasEncryptedData: !!encryptedTodo.encryptedData,
-                hasData: !!encryptedTodo.data,
-                fields: Object.keys(encryptedTodo),
-              });
-
               // The API now returns 'encryptedData' directly
               if (!encryptedTodo.iv || !encryptedTodo.encryptedData) {
                 console.error(
@@ -121,7 +119,7 @@ function TodoListComponent() {
 
               const decrypted = await decryptData(encryptionKey, {
                 iv: encryptedTodo.iv,
-                data: encryptedTodo.encryptedData,
+                data: encryptedTodo.encryptedData, // Pass as 'data' as the decrypt function expects
               });
 
               return {
