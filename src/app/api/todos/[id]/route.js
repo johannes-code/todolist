@@ -45,36 +45,71 @@ export async function DELETE(req, { params }) {
   }
 }
 
-export async function PUT(request, { params }) {
-  const { id } = await params;
-  const { userId } = await auth();
-  await connectToDB();
-  const { completed, priority } = await request.json();
+export async function PUT(req, { params }) {
+  try {
+    console.log("PUT /api/todos/[id] called");
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    const { userId } = await auth();
 
-  const updateFields = {};
-  if (completed !== undefined) {
-    updateFields.completed = completed;
-  }
-  if (priority !== undefined) {
-    updateFields.priority = priority;
-  }
+    if (!userId) {
+      console.error("No authenticated user");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const updatedTodo = await Todo.findOneAndUpdate(
-    { _id: id, userId },
-    updateFields,
-    { new: true }
-  ).lean();
+    const { id } = await params;
+    const body = await req.json();
+    console.log("Request body:", body);
 
-  if (!updatedTodo) {
+    const { iv, encryptedData } = body;
+
+    if (!iv || !encryptedData) {
+      return NextResponse.json(
+        { error: "Invalid request body -  missing encrypted data" },
+        { status: 400 }
+      );
+    }
+    console.log("Updating todo with ID: ", id);
+
+    const userIdHash = await hashUserIdToHex(userId);
+    await connectToDB();
+
+    const result = await Todo.findOneAndUpdate(
+      { _id: id, userIdHash },
+      {
+        $set: {
+          iv: iv,
+          data: encryptedData,
+          updatedAT: new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    if (!result) {
+      console.error("Todo not found or unauthorized");
+      return NextResponse.json(
+        { error: "Todo not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    console.log("Todo updated successfully");
+    return NextResponse.json({
+      message: "Todo updated successfully",
+      todo: {
+        id: result._id,
+        userId: userId,
+        iv: result.iv,
+        encryptedData: result.data,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating todo:", error);
     return NextResponse.json(
-      { error: "Todo not found or unauthorized" },
-      { status: 404 }
+      { error: "Internal server error", details: error.message },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json(updatedTodo);
 }

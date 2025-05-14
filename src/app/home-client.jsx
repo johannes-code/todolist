@@ -153,10 +153,6 @@ function TodoListComponent() {
     };
   }, [isSignedIn, encryptionKey, refreshKey, getToken]);
 
-  const handleAddTodo = async () => {
-    setRefreshKey(Date.now()); // Trigger refresh
-  };
-
   if (!isSignedIn) {
     return (
       <div className="text-center space-y-2">
@@ -175,6 +171,18 @@ function TodoListComponent() {
       </div>
     );
   }
+
+  const handleAddTodo = async () => {
+    setRefreshKey(Date.now()); // Trigger refresh
+  };
+
+  const handleUpdateTodo = (todoId, updates) => {
+    setTodos(
+      todos.map((todo) =>
+        todo._id === todoId ? { ...todo, ...updates } : todo
+      )
+    );
+  };
 
   if (!keyInitialized) {
     return <div className="text-center py-4">Initializing encryption...</div>;
@@ -199,7 +207,14 @@ function TodoListComponent() {
             No todos yet. Add one above!
           </p>
         ) : (
-          todos.map((todo) => <TodoItem key={todo._id} todo={todo} />)
+          todos.map((todo) => (
+            <TodoItem
+              key={todo._id}
+              todo={todo}
+              encryptionKey={encryptionKey}
+              onUpdate={handleUpdateTodo}
+            />
+          ))
         )}
       </div>
     </>

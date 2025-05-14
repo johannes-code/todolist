@@ -1,20 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { encryptData } from "@/app/lib/crypto-utils";
 
-export default function TodoItem({ todo }) {
-  const [completed, setCompleted] = useState(todo.completed);
-
+export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
   const toggleCompleted = async () => {
     try {
-      const res = await fetch(`api/todos/${todo._id}`, {
+      console.log("=== Debug toggleCompleted ===");
+      console.log("1. encryptionKey:", encryptionKey);
+      console.log("2. encryptionKey type:", typeof encryptionKey);
+      console.log("3. Is CryptoKey?", encryptionKey instanceof CryptoKey);
+      console.log(
+        "4. encryptionKey constructor:",
+        encryptionKey?.constructor?.name
+      );
+
+      if (!encryptionKey) {
+        console.error("Encryption key is not available");
+        return;
+      }
+
+      console.log("5. encryptData function:", encryptData);
+
+      const currentTodoData = {
+        id: todo._id,
+        text: todo.text,
+        completed: !todo.completed,
+        createdAt: todo.createdAt,
+      };
+
+      console.log("6. About to call encryptData with:");
+      console.log("   - key:", encryptionKey);
+      console.log("   - data:", currentTodoData);
+
+      const encryptedUpdate = await encryptData(encryptionKey, currentTodoData);
+
+      const response = await fetch(`/api/todos/${todo._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !completed }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          iv: encryptedUpdate.iv,
+          encryptedData: encryptedUpdate.encryptedData,
+        }),
       });
-      if (res.ok) setCompleted(!completed);
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Server error:", error);
+        throw new Error("Failed to update todo");
+      }
+
+      onUpdate(todo._id, { completed: !todo.completed });
     } catch (err) {
-      console.error(err);
+      console.error("Error updating todo:", err);
     }
   };
 
@@ -32,11 +71,11 @@ export default function TodoItem({ todo }) {
       <div className="flex items-center space-x-4">
         <input
           type="checkbox"
-          checked={completed}
+          checked={todo.completed}
           onChange={toggleCompleted}
           className="h-5 w-5"
         />
-        <span className={completed ? "line-through text-gray-400" : ""}>
+        <span className={todo.completed ? "line-through text-gray-400" : ""}>
           {todo.text}
         </span>
       </div>
