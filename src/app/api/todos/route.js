@@ -5,7 +5,7 @@ import Todo from "@/models/Todo";
 import { auth } from "@clerk/nextjs/server";
 import { hashUserIdToHex } from "@/app/lib/crypto-utils";
 
-export async function GET(request) {
+export async function GET() {
   try {
     console.log("GET /api/todos called");
 
@@ -148,37 +148,6 @@ export async function POST(req) {
       {
         status: 500,
       }
-    );
-  }
-}
-
-export async function DELETE(request) {
-  try {
-    console.log("DELETE /api/todos called");
-
-    const { userId } = await auth();
-
-    if (!userId) {
-      console.error("No authenticated user");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userIdHash = await hashUserIdToHex(userId);
-
-    await connectToDB();
-
-    const result = await Todo.deleteMany({ userIdHash });
-    console.log(`Deleted ${result.deletedCount} todos for user ${userId}`);
-
-    return NextResponse.json({
-      message: "All todos cleared",
-      count: result.deletedCount,
-    });
-  } catch (error) {
-    console.error("Error clearing todos:", error);
-    return NextResponse.json(
-      { error: "Internal server error", details: error.message },
-      { status: 500 }
     );
   }
 }
