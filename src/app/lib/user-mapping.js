@@ -1,6 +1,6 @@
 // app/lib/user-mapping.js
 
-import User from "@/models/User";
+import user from "@/models/User";
 
 /**
  * Get or create the internal user ID based on the Clerk ID
@@ -20,10 +20,10 @@ export async function getInternalUserId(clerkId, userData = {}) {
     );
 
     // Hash the Clerk ID for secure lookup
-    const clerkIdHash = User.hashClerkId(clerkId);
+    const clerkIdHash = user.hashClerkId(clerkId);
 
     // Look for an existing user with this hash
-    let user = await User.findOne({ clerkIdHash });
+    let user = await user.findOne({ clerkIdHash });
 
     if (user) {
       console.log(`Found existing user mapping. Internal ID: ${user._id}`);
@@ -40,7 +40,7 @@ export async function getInternalUserId(clerkId, userData = {}) {
     // Create a new user if none exists
     console.log("No existing user found. Creating new user mapping...");
 
-    user = new User({
+    user = new user({
       clerkIdHash,
       ...userData, // Include any additional user data
       stats: {
@@ -69,8 +69,8 @@ export async function getUserByClerkId(clerkId) {
   if (!clerkId) return null;
 
   try {
-    const clerkIdHash = User.hashClerkId(clerkId);
-    return await User.findOne({ clerkIdHash });
+    const clerkIdHash = user.hashClerkId(clerkId);
+    return await user.findOne({ clerkIdHash });
   } catch (error) {
     console.error("Error finding user by Clerk ID:", error);
     return null;
@@ -83,7 +83,7 @@ export async function getUserByClerkId(clerkId) {
  */
 export async function incrementTodosCreated(userId) {
   try {
-    await User.findByIdAndUpdate(userId, {
+    await user.findByIdAndUpdate(userId, {
       $inc: { "stats.todosCreated": 1 },
       $set: { "stats.lastActive": new Date() },
     });
@@ -98,7 +98,7 @@ export async function incrementTodosCreated(userId) {
  */
 export async function incrementTodosCompleted(userId) {
   try {
-    await User.findByIdAndUpdate(userId, {
+    await user.findByIdAndUpdate(userId, {
       $inc: { "stats.todosCompleted": 1 },
       $set: { "stats.lastActive": new Date() },
     });
