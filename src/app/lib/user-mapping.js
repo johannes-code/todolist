@@ -36,6 +36,7 @@ export async function getInternalUserId(clerkId, userData = {}) {
       return user._id.toString();
     }
 
+    //slash
     // Create a new user if none exists
     console.log("No existing user found. Creating new user mapping...");
 
