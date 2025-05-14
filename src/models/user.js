@@ -22,6 +22,6 @@ UserSchema.statics.hashClerkId = function (clerkId) {
     .digest("hex");
 };
 
-const user = mongoose.models.User || mongoose.model("User", UserSchema);
+const dbUser = mongoose.models.User || mongoose.model("User", UserSchema);
 
-export default user;
+export default dbUser;
