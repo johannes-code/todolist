@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { encryptData, hashUserIdToHex } from "../app/lib/crypto-utils";
+import { log, logError } from "@/app/utils/logger";
 
 export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
   const [text, setText] = useState("");
@@ -121,7 +122,7 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
         <button
           type="submit"
           disabled={loading || !text.trim() || !encryptionKey}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {loading ? "Adding..." : "Add Todo"}
         </button>

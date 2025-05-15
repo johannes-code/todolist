@@ -3,6 +3,7 @@ import { connectToDB } from "@/app/lib/db";
 import Todo from "@/models/Todo";
 import { auth } from "@clerk/nextjs/server";
 import { hashUserIdToHex } from "@/app/lib/crypto-utils";
+import { log, error } from "@/app/utils/logger";
 
 export async function DELETE(req, { params }) {
   try {
