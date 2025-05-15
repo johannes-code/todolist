@@ -1,6 +1,7 @@
 "use client";
 
 import { encryptData } from "@/app/lib/crypto-utils";
+import { log, logError } from "@/app/utils/logger";
 
 export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
   const toggleCompleted = async () => {
@@ -64,24 +65,35 @@ export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
   };
 
   return (
-    <div className="flex items-center justify-between p-4 border-b">
-      <div className="flex items-center space-x-4">
-        <input
-          type="checkbox"
-          checked={todo.completed}
-          onChange={toggleCompleted}
-          className="h-5 w-5"
-        />
-        <span className={todo.completed ? "line-through text-gray-400" : ""}>
-          {todo.text}
-        </span>
+    <div>
+      <div className="flex items-center w-40% justify-between p-4 border-b">
+        <div className="flex items-center space-x-4">
+          <input
+            type="checkbox"
+            checked={todo.completed}
+            onChange={toggleCompleted}
+            className="h-5 w-5"
+          />
+          <span className={todo.completed ? "line-through text-gray-400" : ""}>
+            {todo.text}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-2 ml-4 shrink-0">
+            <span className="text-sm text-gray-500">
+              Priority: {todo.priority}
+            </span>
+          </div>
+
+          <button
+            onClick={deleteTodo}
+            className="text-red-500 hover:text-red-700 hover:scale-110 border border-red-500 rounded px-6 py-4 text-m"
+          >
+            Delete
+          </button>
+        </div>
       </div>
-      <div>
-        <span className="text-sm text-gray-500">Priority: {todo.priority}</span>
-      </div>
-      <button onClick={deleteTodo} className="text-red-500 hover:text-red-700">
-        Delete
-      </button>
     </div>
   );
 }

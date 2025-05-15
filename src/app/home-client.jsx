@@ -26,7 +26,7 @@ function TodoListComponent() {
         <p>
           Please{" "}
           <Link href="/sign-in" className="text-blue-500">
-            sign in
+            Sign in
           </Link>
         </p>
         <p>
@@ -35,6 +35,11 @@ function TodoListComponent() {
             Sign up
           </Link>
         </p>
+        <img
+          src="/assets/img.png"
+          alt="Screenshot TodoApp"
+          className="w-4xl mx-auto mt-8  shadow-lg"
+        />
       </div>
     );
   }
@@ -65,8 +70,8 @@ function TodoListComponent() {
 
 export default function Home() {
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Todo App</h1>
+    <div className="w-11/12 mx-auto p-4">
+      <h1 className="text-5xl font-extrabold text-center mb-6">Todo App</h1>
       <TodoListComponent />
     </div>
   );
