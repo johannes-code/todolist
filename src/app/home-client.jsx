@@ -26,9 +26,7 @@ function TodoListComponent() {
     async function initializeKey() {
       try {
         if (!isSignedIn || !userId) {
-          console.log(
-            "Not signed in or no user ID, skipping key initialization"
-          );
+          log("Not signed in or no user ID, skipping key initialization");
           return;
         }
 
