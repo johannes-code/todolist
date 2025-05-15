@@ -4,7 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    console.log("Test endpoint called");
+    log("Test endpoint called");
 
     // Test basic response
     const basicTest = {
@@ -33,7 +33,7 @@ export async function GET() {
       auth: authTest,
     });
   } catch (error) {
-    console.error("Test endpoint error:", error);
+    logError("Test endpoint error:", error);
     return NextResponse.json(
       {
         error: error.message,

@@ -1,6 +1,7 @@
 // app/lib/user-mapping.js
 
 import dbUser from "@/models/user";
+import { log, logError } from "@/app/utils/logger";
 
 /**
  * Get or create the internal user ID based on the Clerk ID
@@ -10,12 +11,12 @@ import dbUser from "@/models/user";
  */
 export async function getInternalUserId(clerkId, userData = {}) {
   if (!clerkId) {
-    console.error("No Clerk ID provided to getInternalUserId");
+    logError("No Clerk ID provided to getInternalUserId");
     return null;
   }
 
   try {
-    console.log(
+    log(
       `Looking up internal user ID for Clerk ID: ${clerkId.substring(0, 8)}...`
     );
 
@@ -37,7 +38,7 @@ export async function getInternalUserId(clerkId, userData = {}) {
     }
 
     // Create a new user if none exists
-    console.log("No existing user found. Creating new user mapping...");
+    log("No existing user found. Creating new user mapping...");
 
     user = new dbUser({
       clerkIdHash,
@@ -50,11 +51,11 @@ export async function getInternalUserId(clerkId, userData = {}) {
     });
 
     await user.save();
-    console.log(`Created new user with internal ID: ${user._id}`);
+    log(`Created new user with internal ID: ${user._id}`);
 
     return user._id.toString();
   } catch (error) {
-    console.error("Error in user mapping:", error);
+    logError("Error in user mapping:", error);
     return null;
   }
 }
@@ -87,7 +88,7 @@ export async function incrementTodosCreated(userId) {
       $set: { "stats.lastActive": new Date() },
     });
   } catch (error) {
-    console.error("Error updating todos created count:", error);
+    logError("Error updating todos created count:", error);
   }
 }
 
@@ -102,6 +103,6 @@ export async function incrementTodosCompleted(userId) {
       $set: { "stats.lastActive": new Date() },
     });
   } catch (error) {
-    console.error("Error updating todos completed count:", error);
+    logError("Error updating todos completed count:", error);
   }
 }

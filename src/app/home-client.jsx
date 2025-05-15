@@ -9,6 +9,7 @@ import {
   encryptData,
   decryptData,
 } from "./lib/crypto-utils";
+import { log, logError } from "@/app/utils/logger";
 
 function TodoListComponent() {
   const [todos, setTodos] = useState([]);
@@ -30,7 +31,7 @@ function TodoListComponent() {
           return;
         }
 
-        console.log("Initializing encryption key for user:", userId);
+        log("Initializing encryption key for user:", userId);
 
         // Derive a consistent key from the user ID
         const key = await deriveKeyFromUserId(userId);
@@ -38,10 +39,10 @@ function TodoListComponent() {
         if (mounted) {
           setEncryptionKey(key);
           setKeyInitialized(true);
-          console.log("Key initialized successfully");
+          log("Key initialized successfully");
         }
       } catch (error) {
-        console.error("Key initialization failed:", error);
+        logError("Key initialization failed:", error);
         if (mounted) {
           setInitError("Failed to initialize encryption");
           setKeyInitialized(true);
@@ -71,7 +72,7 @@ function TodoListComponent() {
 
         // Get fresh token for the request
         const token = await getToken();
-        console.log("Using token for fetch:", !!token);
+        log("Using token for fetch:", !!token);
 
         const response = await fetch("/api/todos", {
           method: "GET",
@@ -90,25 +91,22 @@ function TodoListComponent() {
               errorMessage = errorData.error;
             }
           } catch (e) {
-            console.error("Could not parse error response:", e);
+            logError("Could not parse error response:", e);
           }
 
           throw new Error(errorMessage);
         }
 
         const encryptedTodos = await response.json();
-        console.log("Received todos:", encryptedTodos.length);
-        console.log(
-          "First todo raw:",
-          JSON.stringify(encryptedTodos[0], null, 2)
-        );
+        log("Received todos:", encryptedTodos.length);
+        log("First todo raw:", JSON.stringify(encryptedTodos[0], null, 2));
 
         const decryptedTodos = await Promise.all(
           encryptedTodos.map(async (encryptedTodo) => {
             try {
               // The API now returns 'encryptedData' directly
               if (!encryptedTodo.iv || !encryptedTodo.encryptedData) {
-                console.error(
+                logError(
                   "Todo missing required encryption fields:",
                   encryptedTodo
                 );
@@ -126,8 +124,8 @@ function TodoListComponent() {
                 createdAt: encryptedTodo.createdAt,
               };
             } catch (error) {
-              console.error("Failed to decrypt todo:", error);
-              console.error("Problematic todo:", encryptedTodo);
+              logError("Failed to decrypt todo:", error);
+              logError("Problematic todo:", encryptedTodo);
               return null;
             }
           })
@@ -137,7 +135,7 @@ function TodoListComponent() {
           setTodos(decryptedTodos.filter(Boolean));
         }
       } catch (error) {
-        console.error("Todo fetch failed:", error);
+        logError("Todo fetch failed:", error);
         if (mounted) setInitError("Failed to load todos: " + error.message);
       } finally {
         if (mounted) setLoading(false);
