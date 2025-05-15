@@ -6,17 +6,17 @@ import { hashUserIdToHex } from "@/app/lib/crypto-utils";
 
 export async function DELETE(req, { params }) {
   try {
-    console.log("DELETE /api/todos/[id] called");
+    log("DELETE /api/todos/[id] called");
 
     const { userId } = await auth();
 
     if (!userId) {
-      console.error("No authenticated user");
+      error("No authenticated user");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
-    console.log("Deleting todo with ID:", id);
+    log("Deleting todo with ID:", id);
 
     const userIdHash = await hashUserIdToHex(userId);
     await connectToDB();
@@ -27,17 +27,17 @@ export async function DELETE(req, { params }) {
     });
 
     if (result.deletedCount === 0) {
-      console.error("Todo not found or unauthorized");
+      error("Todo not found or unauthorized");
       return NextResponse.json(
         { error: "Todo not found or unauthorized" },
         { status: 404 }
       );
     }
 
-    console.log("Todo deleted successfully");
+    log("Todo deleted successfully");
     return NextResponse.json({ message: "Todo deleted successfully" });
   } catch (error) {
-    console.error("Unexpected error in DELETE /api/todos/[id]:", error);
+    error("Unexpected error in DELETE /api/todos/[id]:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
       { status: 500 }
@@ -47,18 +47,18 @@ export async function DELETE(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
-    console.log("PUT /api/todos/[id] called");
+    log("PUT /api/todos/[id] called");
 
     const { userId } = await auth();
 
     if (!userId) {
-      console.error("No authenticated user");
+      error("No authenticated user");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     const body = await req.json();
-    console.log("Request body:", body);
+    log("Request body:", body);
 
     const { iv, encryptedData } = body;
 
@@ -68,7 +68,7 @@ export async function PUT(req, { params }) {
         { status: 400 }
       );
     }
-    console.log("Updating todo with ID: ", id);
+    log("Updating todo with ID: ", id);
 
     const userIdHash = await hashUserIdToHex(userId);
     await connectToDB();
@@ -86,14 +86,14 @@ export async function PUT(req, { params }) {
     );
 
     if (!result) {
-      console.error("Todo not found or unauthorized");
+      logError("Todo not found or unauthorized");
       return NextResponse.json(
         { error: "Todo not found or unauthorized" },
         { status: 404 }
       );
     }
 
-    console.log("Todo updated successfully");
+    log("Todo updated successfully");
     return NextResponse.json({
       message: "Todo updated successfully",
       todo: {
@@ -106,7 +106,7 @@ export async function PUT(req, { params }) {
       },
     });
   } catch (error) {
-    console.error("Error updating todo:", error);
+    logError("Error updating todo:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
       { status: 500 }

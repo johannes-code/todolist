@@ -17,21 +17,21 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
       return;
     }
 
-    console.log("Form submitted!");
-    console.log("current text", text);
-    console.log("Encryption key exists:", !!encryptionKey);
+    log("Form submitted!");
+    log("current text", text);
+    log("Encryption key exists:", !!encryptionKey);
 
     setLoading(true);
     try {
       const token = await getToken();
-      console.log("Token obtained:", token.substring(0, 20) + "...");
+      log("Token obtained:", token.substring(0, 20) + "...");
 
       if (!token || !userId) {
         throw new Error("Not authenticated");
       }
 
       const userIdHash = await hashUserIdToHex(userId);
-      console.log("User ID hashed client-side");
+      log("User ID hashed client-side");
 
       const todoData = {
         text: text.trim(),
@@ -40,13 +40,13 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
         createdAt: new Date().toISOString(),
       };
 
-      console.log("Todo data before encryption:", todoData);
+      log("Todo data before encryption:", todoData);
 
       const encryptedTodo = await encryptData(encryptionKey, todoData);
 
-      console.log("Encrypted todo:", encryptedTodo);
-      console.log("Encrypted todo iv type:", Array.isArray(encryptedTodo.iv));
-      console.log(
+      log("Encrypted todo:", encryptedTodo);
+      log("Encrypted todo iv type:", Array.isArray(encryptedTodo.iv));
+      log(
         "Encrypted todo encryptedData type:",
         Array.isArray(encryptedTodo.encryptedData)
       );
@@ -56,7 +56,7 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
         userIdHash: userIdHash,
       };
 
-      console.log("Request body:", JSON.stringify(requestBody));
+      log("Request body:", JSON.stringify(requestBody));
 
       const response = await fetch("/api/todos", {
         method: "POST",
@@ -67,7 +67,7 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
         body: JSON.stringify(requestBody),
       });
 
-      console.log("Response status:", response.status);
+      log("Response status:", response.status);
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}`;
@@ -79,7 +79,7 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
             console.error("Server error:", errorData);
           }
         } catch (e) {
-          console.error("Could not parse error response:", e);
+          logError("Could not parse error response:", e);
         }
 
         throw new Error(errorMessage);
@@ -90,7 +90,7 @@ export default function AddTodoForm({ encryptionKey, onTodoAdded }) {
 
       onTodoAdded();
     } catch (error) {
-      console.error("Error adding todo:", error);
+      logError("Error adding todo:", error);
       alert(`Failed to add todo: ${error.message}`);
     } finally {
       setLoading(false);

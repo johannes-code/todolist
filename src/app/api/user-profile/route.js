@@ -7,17 +7,17 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function GET(request) {
   try {
-    console.log("GET /api/user-profile request received");
+    log("GET /api/user-profile request received");
 
     await connectToDB();
     const { userId: clerkId } = auth();
 
     if (!clerkId) {
-      console.error("Unauthorized: No Clerk ID found in request");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      logError("Unauthorized: No Clerk ID found in request");
+      return NextResponse.json({ logError: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Authenticated with Clerk ID:", clerkId);
+    log("Authenticated with Clerk ID:", clerkId);
 
     const internalUserId = await getInternalUserId(clerkId);
 
@@ -36,8 +36,8 @@ export async function GET(request) {
       createdAt: user.createdAt,
     });
   } catch (error) {
-    console.error("Error fetching user profile:", error);
-    return NextResponse.json(
+    logError("Error fetching user profile:", error);
+    return NextResponse.logEson(
       { error: "Failed to fetch user profile: " + error.message },
       { status: 500 }
     );
@@ -47,14 +47,14 @@ export async function GET(request) {
 // Update user profile
 export async function PUT(request) {
   try {
-    console.log("PUT /api/user-profile request received");
+    log("PUT /api/user-profile request received");
 
     await connectToDB();
     const { userId: clerkId } = auth();
 
     if (!clerkId) {
-      console.error("Unauthorized: No Clerk ID found in request");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      logError("Unauthorized: No Clerk ID found in request");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 404 });
     }
 
     // Get internal user ID
@@ -83,7 +83,7 @@ export async function PUT(request) {
       createdAt: updatedUser.createdAt,
     });
   } catch (error) {
-    console.error("Error updating user profile:", error);
+    logError("Error updating user profile:", error);
     return NextResponse.json(
       { error: "Failed to update user profile: " + error.message },
       { status: 500 }

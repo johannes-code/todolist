@@ -1,5 +1,6 @@
 // src/app/lib/db.js
 import mongoose from "mongoose";
+import { log } from "@/app/utils/logger";
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
 
@@ -18,7 +19,7 @@ if (!cached) {
 export async function connectToDB() {
   try {
     if (cached.conn) {
-      console.log("Using cached database connection");
+      log("Using cached database connection");
       return cached.conn;
     }
 
@@ -27,9 +28,9 @@ export async function connectToDB() {
         bufferCommands: false,
       };
 
-      console.log("Creating new database connection");
+      log("Creating new database connection");
       cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-        console.log("Database connected successfully");
+        log("Database connected successfully");
         return mongoose;
       });
     }

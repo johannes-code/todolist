@@ -5,21 +5,18 @@ import { encryptData } from "@/app/lib/crypto-utils";
 export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
   const toggleCompleted = async () => {
     try {
-      console.log("=== Debug toggleCompleted ===");
-      console.log("1. encryptionKey:", encryptionKey);
-      console.log("2. encryptionKey type:", typeof encryptionKey);
-      console.log("3. Is CryptoKey?", encryptionKey instanceof CryptoKey);
-      console.log(
-        "4. encryptionKey constructor:",
-        encryptionKey?.constructor?.name
-      );
+      log("=== Debug toggleCompleted ===");
+      log("1. encryptionKey:", encryptionKey);
+      log("2. encryptionKey type:", typeof encryptionKey);
+      log("3. Is CryptoKey?", encryptionKey instanceof CryptoKey);
+      log("4. encryptionKey constructor:", encryptionKey?.constructor?.name);
 
       if (!encryptionKey) {
-        console.error("Encryption key is not available");
+        logError("Encryption key is not available");
         return;
       }
 
-      console.log("5. encryptData function:", encryptData);
+      log("5. encryptData function:", encryptData);
 
       const currentTodoData = {
         id: todo._id,
@@ -28,9 +25,9 @@ export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
         createdAt: todo.createdAt,
       };
 
-      console.log("6. About to call encryptData with:");
-      console.log("   - key:", encryptionKey);
-      console.log("   - data:", currentTodoData);
+      log("6. About to call encryptData with:");
+      log("   - key:", encryptionKey);
+      log("   - data:", currentTodoData);
 
       const encryptedUpdate = await encryptData(encryptionKey, currentTodoData);
 
@@ -47,13 +44,13 @@ export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error("Server error:", error);
+        logError("Server error:", error);
         throw new Error("Failed to update todo");
       }
 
       onUpdate(todo._id, { completed: !todo.completed });
     } catch (err) {
-      console.error("Error updating todo:", err);
+      logError("Error updating todo:", err);
     }
   };
 
@@ -62,7 +59,7 @@ export default function TodoItem({ todo, onDelete, onUpdate, encryptionKey }) {
       await fetch(`/api/todos/${todo._id}`, { method: "DELETE" });
       window.location.reload();
     } catch (err) {
-      console.error(err);
+      logError(err);
     }
   };
 
