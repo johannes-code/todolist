@@ -60,7 +60,7 @@ When you add a new todo, it gets displayed in a list under the todomaker.
 
 
 ## Flowchart
-![public/assets/todolistflow.svg]
+![todolistflow](public/assets/todolistflow.svg)
 
 
 
