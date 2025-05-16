@@ -55,11 +55,12 @@ When you add a new todo, it gets displayed in a list under the todomaker.
 
 
 ## Flowchart
+![diagram-export-12.5.2025-14_28_02](public/assets/diagram-export-12.5.2025-14_28_02.png)
 
 
 
 
-![diagram-export-12.5.2025-14_28_02](diagram-export-12.5.2025-14_28_02.png)
+
 
 ## Encryption
 
@@ -70,7 +71,7 @@ More about the AES-GCM standard here: [Medium](https://medium.com/@kingsonejikem
 ## Screenshots
 
 Screenshot from the todolist:
-![img 1](img%201.png) 
+![img 1](public/assets/img%201.png)
 
 
 
@@ -78,13 +79,13 @@ Screenshot from the todolist:
 **What the databaseowner sees:**
 
 List of todoItems:
-![Skjermbilde 2025-05-14 143645](Skjermbilde%202025-05-14%20143645.png)
+![Skjermbilde 2025-05-14 143645](public/assets/Skjermbilde%202025-05-14%20143645.png)
 
 Single todoItem:
-![Skjermbilde 2025-05-14 143711](Skjermbilde%202025-05-14%20143711.png)
+![Skjermbilde 2025-05-14 143711](public/assets/Skjermbilde%202025-05-14%20143711.png)
 
 Single user:
-![Skjermbilde 2025-05-14 143811](Skjermbilde%202025-05-14%20143811.png)
+![Skjermbilde 2025-05-14 143811](public/assets/Skjermbilde%202025-05-14%20143811.png)
 
 
 
