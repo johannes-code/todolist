@@ -6,11 +6,16 @@
 
 ## Table of content
 
-[#Introduction](#Introduction)
+[#Introduction](#Introduction) 
+
 [#How to use](#How%20to%20use)
+
 [#Flowchart](#Flowchart)
+
 [#Encryption](#Encryption)
+
 [#Screenshots](#Screenshots)
+
 [#Links](#Links)
 
 
@@ -79,12 +84,15 @@ Screenshot from the todolist:
 **What the databaseowner sees:**
 
 List of todoItems:
+
 ![Skjermbilde 2025-05-14 143645](public/assets/Skjermbilde%202025-05-14%20143645.png)
 
 Single todoItem:
+
 ![Skjermbilde 2025-05-14 143711](public/assets/Skjermbilde%202025-05-14%20143711.png)
 
 Single user:
+
 ![Skjermbilde 2025-05-14 143811](public/assets/Skjermbilde%202025-05-14%20143811.png)
 
 
