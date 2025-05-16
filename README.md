@@ -70,7 +70,9 @@ When you add a new todo, it gets displayed in a list under the todomaker.
 
 ## Encryption
 
-**Standard:** AES-GCM was choosen because its a standard, and its ensures that the data is both encrypted and that it hasnt been tampered with.
+**Standard:** AES-GCM was choosen because its a  well known and tested standard. 
+Because it has the ability to check the integrity and authentication of additonal authenticated data that is sent it is a good choice for this project.
+AES-GCM have four inputs for the authentication data, the secret key, initialization vector, plaintext and optional additional authentication data.
 More about the AES-GCM standard here: [Medium](https://medium.com/@kingsonejikeme_31625/api-encryption-in-next-js-keep-your-data-safe-efdf94c0eae9)
 
 
